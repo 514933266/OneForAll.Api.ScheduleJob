@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="12.0.1" />
+    <PackageReference Include="OneForAll.Core" Version="1.2.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScheduleJob.Domain\ScheduleJob.Domain.csproj" />
+    <ProjectReference Include="..\ScheduleJob.HttpSevice\ScheduleJob.HttpService.csproj" />
+    <ProjectReference Include="..\ScheduleJob.Public\ScheduleJob.Public.csproj" />
+    <ProjectReference Include="..\ScheduleJob.Repository\ScheduleJob.Repository.csproj" />
+  </ItemGroup>
+
+</Project>

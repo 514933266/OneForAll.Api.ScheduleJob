@@ -1,0 +1,88 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <LangVersion>7.1</LangVersion>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile></DocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="App_Start\**" />
+    <Compile Remove="Commom\**" />
+    <Compile Remove="Controllers\OA\**" />
+    <Compile Remove="Controllers\PMC\**" />
+    <Compile Remove="Images\**" />
+    <Content Remove="App_Start\**" />
+    <Content Remove="Commom\**" />
+    <Content Remove="Controllers\OA\**" />
+    <Content Remove="Controllers\PMC\**" />
+    <Content Remove="Images\**" />
+    <EmbeddedResource Remove="App_Start\**" />
+    <EmbeddedResource Remove="Commom\**" />
+    <EmbeddedResource Remove="Controllers\OA\**" />
+    <EmbeddedResource Remove="Controllers\PMC\**" />
+    <EmbeddedResource Remove="Images\**" />
+    <None Remove="App_Start\**" />
+    <None Remove="Commom\**" />
+    <None Remove="Controllers\OA\**" />
+    <None Remove="Controllers\PMC\**" />
+    <None Remove="Images\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Controllers\DepartmentsController.cs" />
+    <Compile Remove="Controllers\OrgUsersController.cs" />
+    <Compile Remove="Controllers\UsergroupsController.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Controllers\OAPersonBirthdaysController.cs~RF28f49c5d.TMP" />
+    <None Remove="Controllers\OATeamMembersController.cs~RF647c002e.TMP" />
+    <None Remove="ve-8CB1.tmp" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Autofac" Version="7.1.0" />
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="8.0.0" />
+    <PackageReference Include="Autofac.Extras.DynamicProxy" Version="7.1.0" />
+    <PackageReference Include="AutoMapper" Version="12.0.1" />
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <PackageReference Include="IdentityServer4.AccessTokenValidation" Version="3.0.1" />
+    <PackageReference Include="Microsoft.AspNet.WebApi.Client" Version="5.2.9" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="7.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.12" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.12">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="7.0.10" />
+    <PackageReference Include="OneForAll.Core" Version="1.2.0.4" />
+    <PackageReference Include="OneForAll.EFCore" Version="1.2.2.6" />
+    <PackageReference Include="Quartz" Version="3.7.0" />
+    <PackageReference Include="TimeCrontab" Version="3.3.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <DotNetCliToolReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Tools" Version="2.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScheduleJob.Application\ScheduleJob.Application.csproj" />
+    <ProjectReference Include="..\ScheduleJob.Domain\ScheduleJob.Domain.csproj" />
+    <ProjectReference Include="..\ScheduleJob.HttpSevice\ScheduleJob.HttpService.csproj" />
+    <ProjectReference Include="..\ScheduleJob.Public\ScheduleJob.Public.csproj" />
+  </ItemGroup>
+
+  <ProjectExtensions><VisualStudio><UserProperties properties_4launchsettings_1json__JsonSchema="" appsettings_1json__JSONSchema="" /></VisualStudio></ProjectExtensions>
+
+</Project>
