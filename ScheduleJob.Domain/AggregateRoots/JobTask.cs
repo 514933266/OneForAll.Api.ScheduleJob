@@ -70,7 +70,7 @@ namespace ScheduleJob.Domain.AggregateRoots
         /// </summary>
         [Required]
         [StringLength(50)]
-        public string IpAddress { get; set; }
+        public string IpAddress { get; set; } = "127.0.0.0";
 
         /// <summary>
         /// 正则表达式

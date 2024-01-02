@@ -1,5 +1,7 @@
-﻿using Microsoft.Extensions.Hosting;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Hosting;
 using OneForAll.Core.Extension;
+using Org.BouncyCastle.Asn1.Cms;
 using Quartz;
 using Quartz.Spi;
 using ScheduleJob.Host.Models;
@@ -18,6 +20,7 @@ namespace ScheduleJob.Host.Providers
         private readonly QuartzScheduleJobConfig _config;
         private readonly IJobFactory _jobFactory;
         private readonly ISchedulerFactory _schedulerFactory;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         private readonly IScheduleJobHttpService _jobHttpService;
 
@@ -26,12 +29,13 @@ namespace ScheduleJob.Host.Providers
             QuartzScheduleJobConfig config,
             IJobFactory jobFactory,
             ISchedulerFactory schedulerFactory,
+            IHttpContextAccessor httpContextAccessor,
             IScheduleJobHttpService jobHttpService)
         {
             _config = config;
             _jobFactory = jobFactory;
             _schedulerFactory = schedulerFactory;
-
+            _httpContextAccessor = httpContextAccessor;
             _jobHttpService = jobHttpService;
         }
 

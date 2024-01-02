@@ -71,5 +71,14 @@ namespace ScheduleJob.Repository
 
             return new PageList<JobTaskLog>(total, pageSize, pageIndex, data);
         }
+
+        /// <summary>
+        /// 查询第一条数据
+        /// </summary>
+        /// <returns>列表</returns>
+        public async Task<JobTaskLog> GetTop1ByTaskAsync(string appId, string taskName)
+        {
+            return await DbSet.Where(w => w.AppId == appId && w.TaskName == taskName).OrderByDescending(o => o.CreateTime).FirstOrDefaultAsync();
+        }
     }
 }

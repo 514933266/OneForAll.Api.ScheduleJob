@@ -32,6 +32,7 @@ using Quartz.Impl;
 using NPOI.SS.Formula.Functions;
 using OneForAll.Core.Utility;
 using ScheduleJob.Host.QuartzJobs;
+using System.Text.RegularExpressions;
 
 namespace ScheduleJob.Host
 {

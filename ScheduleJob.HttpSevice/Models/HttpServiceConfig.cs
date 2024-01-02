@@ -35,5 +35,15 @@ namespace ScheduleJob.HttpService.Models
         /// </summary>
         public string ScheduleJob { get; set; } = "ScheduleJob";
 
+        /// <summary>
+        /// 企业微信通知
+        /// </summary>
+        public string UmsWechatQyRobot { get; set; } = "UmsWechatQyRobot";
+
+        /// <summary>
+        /// 企业微信通知地址
+        /// </summary>
+        public string UmsWechatQyRobotWebhookUrl { get; set; } = "UmsWechatQyRobotWebhookUrl";
+
     }
 }

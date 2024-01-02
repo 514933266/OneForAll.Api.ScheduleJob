@@ -31,6 +31,13 @@ namespace ScheduleJob.Host
 
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
             });
+
+            modelBuilder.Entity<JobNotificationConfig>(entity =>
+            {
+                entity.ToTable("Job_NotificationConfig");
+
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            });
         }
     }
 }

@@ -7,6 +7,7 @@ using ScheduleJob.Host.Models;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using static Quartz.Logging.OperationName;
 
 namespace ScheduleJob.Host.QuartzJobs
 {
@@ -53,6 +54,7 @@ namespace ScheduleJob.Host.QuartzJobs
                 var effected = await _repository.DeleteRangeAsync(errors);
                 await _service.AddLogAsync(_config.ClientCode, name, $"删除15天前的错误日志执行完成，共有{effected}条");
             }
+            await _service.AddLogAsync(_config.ClientCode, typeof(DeleteTaskLogJob).Name, $"巡检删除定时任务日志执行完成，共删除前一天心跳日志{heartbeats.Count()}个,7天前的运行日志{sevenDays.Count()}个,15天前的错误日志{errors.Count()}");
         }
     }
 }

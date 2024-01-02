@@ -67,16 +67,21 @@ namespace ScheduleJob.Domain
                 _mapper.Map(form, data);
                 data.UpdateTime = DateTime.Now;
                 data.RunningTime = DateTime.Now;
-                data.HeartbeatTime = DateTime.Now;
                 data.Status = JobTaskStatusEnum.Running;
-                data.IpAddress = _httpContextAccessor.HttpContext == null ? "127.0.0.0" : _httpContextAccessor.HttpContext.Request.Host.Value;
+                if (_httpContextAccessor.HttpContext != null)
+                {
+                    data.IpAddress = _httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
+                }
                 errType = await ResultAsync(() => _repository.UpdateAsync(data));
             }
             else
             {
                 data = _mapper.Map<JobTaskRegisterForm, JobTask>(form);
                 data.Status = JobTaskStatusEnum.Running;
-                data.IpAddress = _httpContextAccessor.HttpContext == null ? "127.0.0.0" : _httpContextAccessor.HttpContext.Request.Host.Value;
+                if (_httpContextAccessor.HttpContext != null)
+                {
+                    data.IpAddress = _httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
+                }
                 errType = await ResultAsync(() => _repository.AddAsync(data));
             }
             return errType;

@@ -36,5 +36,12 @@ namespace ScheduleJob.Domain.Repositorys
             string key,
             DateTime? beiginTime,
             DateTime? endTime);
+
+
+        /// <summary>
+        /// 查询第一条数据
+        /// </summary>
+        /// <returns>列表</returns>
+        Task<JobTaskLog> GetTop1ByTaskAsync(string appId, string taskName);
     }
 }

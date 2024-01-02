@@ -63,7 +63,7 @@ namespace ScheduleJob.Application
                 {
                     AppId = form.AppId,
                     TaskName = form.Name,
-                    Content = $"定时任务{(form.Id == Guid.Empty ? "注册" : "上线")}，运行节点【{form.NodeName}】",
+                    Content = $"定时任务{(form.Id == Guid.Empty ? "注册" : "上线")},所属分组【{form.GroupName}】，运行节点【{form.NodeName}】,表达式【{form.Cron}】",
                     Type = form.Id == Guid.Empty ? JobTaskLogTypeEnum.Register : JobTaskLogTypeEnum.Online
                 });
             }

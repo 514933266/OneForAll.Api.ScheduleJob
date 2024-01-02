@@ -65,7 +65,7 @@ namespace ScheduleJob.Host.Providers
                 NodeName = "本地",
                 Cron = corn,
                 Name = type.Name,
-                Remark = "监听心跳超过5分钟的定时任务，将状态转为异常，每分钟执行一次"
+                Remark = "监听心跳超过5分钟的定时任务，将状态转为异常，每5分钟执行一次"
             });
         }
 
