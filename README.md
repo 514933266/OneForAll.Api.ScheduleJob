@@ -1,6 +1,7 @@
 ﻿## OneForAll-定时任务管理服务
 帮助开发人员快速构建Web后台管理系统定时任务管理服务</br>
-基于Quartz.Net</br>
+基于Quartz.Net<br/>
+主项目传送门：https://github.com/514933266/OneForAll.Web<br/>
 
 ### 一、定时任务调度中台
 #### 任务列表
