@@ -5,16 +5,13 @@ using ScheduleJob.Domain.AggregateRoots;
 
 namespace ScheduleJob.Host
 {
-    public partial class OneForAll_JobContext : DbContext
+    public partial class JobContext : DbContext
     {
-        public OneForAll_JobContext(DbContextOptions<OneForAll_JobContext> options)
+        public JobContext(DbContextOptions<JobContext> options)
             : base(options)
         {
 
         }
-
-        public virtual DbSet<JobTask> JobTask { get; set; }
-        public virtual DbSet<JobTaskLog> JobTaskLog { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -35,6 +32,20 @@ namespace ScheduleJob.Host
             modelBuilder.Entity<JobNotificationConfig>(entity =>
             {
                 entity.ToTable("Job_NotificationConfig");
+
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            });
+
+            modelBuilder.Entity<JobTaskPersonContact>(entity =>
+            {
+                entity.ToTable("Job_TaskPersonContact");
+
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            });
+
+            modelBuilder.Entity<JobPerson>(entity =>
+            {
+                entity.ToTable("Job_Person");
 
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
             });

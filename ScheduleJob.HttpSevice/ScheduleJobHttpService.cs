@@ -33,16 +33,16 @@ namespace ScheduleJob.HttpService
         /// </summary>
         /// <param name="request">请求</param>
         /// <returns></returns>
-        public async Task<BaseErrType> RegisterAsync(JobRegisterRequest request)
+        public async Task<BaseMessage> RegisterAsync(JobRegisterRequest request)
         {
             var client = GetHttpClient(_config.ScheduleJob);
             if (client != null && client.BaseAddress != null)
             {
                 var response = await client.PostAsync(client.BaseAddress, request, new JsonMediaTypeFormatter());
                 var msg = await response.Content.ReadAsAsync<BaseMessage>();
-                return msg.ErrType;
+                return msg;
             }
-            return BaseErrType.Fail;
+            return new BaseMessage().Fail("未配置调度中心地址");
         }
 
         /// <summary>
@@ -51,14 +51,17 @@ namespace ScheduleJob.HttpService
         /// <param name="appId">应用程序id</param>
         /// <param name="taskName">定时任务名称</param>
         /// <returns结果</returns>
-        public async Task DownLineAsync(string appId, string taskName)
+        public async Task<BaseMessage> DownLineAsync(string appId, string taskName)
         {
             var client = GetHttpClient(_config.ScheduleJob);
             if (client != null && client.BaseAddress != null)
             {
                 var url = $"{client.BaseAddress}/{appId}/{taskName}";
-                await client.DeleteAsync(url);
+                var response = await client.DeleteAsync(url);
+                var msg = await response.Content.ReadAsAsync<BaseMessage>();
+                return msg;
             }
+            return new BaseMessage().Fail("未配置调度中心地址");
         }
 
         /// <summary>
@@ -68,7 +71,7 @@ namespace ScheduleJob.HttpService
         /// <param name="taskName">定时任务名称</param>
         /// <param name="log">日志内容</param>
         /// <returns结果</returns>
-        public async Task<BaseErrType> LogAsync(string appId, string taskName, string log)
+        public async Task<BaseMessage> LogAsync(string appId, string taskName, string log)
         {
             var client = GetHttpClient(_config.ScheduleJob);
             if (client != null && client.BaseAddress != null)
@@ -76,9 +79,51 @@ namespace ScheduleJob.HttpService
                 var url = $"{client.BaseAddress}/{appId}/{taskName}";
                 var response = await client.PostAsync(url, log, new JsonMediaTypeFormatter());
                 var msg = await response.Content.ReadAsAsync<BaseMessage>();
-                return msg.ErrType;
+                return msg;
             }
-            return BaseErrType.Fail;
+            return new BaseMessage().Fail("未配置调度中心地址");
+        }
+
+        /// <summary>
+        /// 暂停定时服务
+        /// </summary>
+        /// <param name="taskName">定时任务名称</param>
+        /// <returns结果</returns>
+        public async Task<BaseMessage> StopAsync(string url, string taskName)
+        {
+            var client = new HttpClient();
+            url = $"{url}/api/Startups/Default/Jobs/{taskName}/Stop";
+            var response = await client.PostAsync(url, null);
+            var msg = await response.Content.ReadAsAsync<BaseMessage>();
+            return msg;
+        }
+
+        /// <summary>
+        /// 重启定时服务
+        /// </summary>
+        /// <param name="taskName">定时任务名称</param>
+        /// <returns结果</returns>
+        public async Task<BaseMessage> ResumeAsync(string url, string taskName)
+        {
+            var client = new HttpClient();
+            url = $"{url}/api/Startups/Default/Jobs/{taskName}/Resume";
+            var response = await client.PostAsync(url, null);
+            var msg = await response.Content.ReadAsAsync<BaseMessage>();
+            return msg;
+        }
+
+        /// <summary>
+        /// 执行一次定时服务
+        /// </summary>
+        /// <param name="taskName">定时任务名称</param>
+        /// <returns结果</returns>
+        public async Task<BaseMessage> ExcuteAsync(string url, string taskName)
+        {
+            var client = new HttpClient();
+            url = $"{url}/api/Startups/Default/Jobs/{taskName}/Excute";
+            var response = await client.PostAsync(url, null);
+            var msg = await response.Content.ReadAsAsync<BaseMessage>();
+            return msg;
         }
     }
 }

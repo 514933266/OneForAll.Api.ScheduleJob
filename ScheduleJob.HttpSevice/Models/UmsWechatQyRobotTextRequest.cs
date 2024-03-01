@@ -10,7 +10,7 @@ namespace ScheduleJob.HttpService.Models
     /// <summary>
     /// 微信机器人
     /// </summary>
-    public class UmsWechatQyRobotTextForm
+    public class UmsWechatQyRobotTextRequest
     {
         /// <summary>
         /// 机器人地址

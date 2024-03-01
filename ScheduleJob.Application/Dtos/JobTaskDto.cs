@@ -86,5 +86,10 @@ namespace ScheduleJob.Application.Dtos
         /// 备注
         /// </summary>
         public string Remark { get; set; }
+
+        /// <summary>
+        /// 负责人列表
+        /// </summary>
+        public List<string> Persons { get; set; } = new List<string>();
     }
 }

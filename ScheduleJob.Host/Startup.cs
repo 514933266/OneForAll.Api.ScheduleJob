@@ -131,7 +131,7 @@ namespace ScheduleJob.Host
 
             #region EFCore
 
-            services.AddDbContext<OneForAll_JobContext>(options =>
+            services.AddDbContext<JobContext>(options =>
                 options.UseSqlServer(Configuration["ConnectionStrings:Default"]));
             services.AddScoped<ITenantProvider, TenantProvider>();
 
@@ -144,32 +144,19 @@ namespace ScheduleJob.Host
             services.AddSingleton(quartzConfig);
             services.AddSingleton<IJobFactory, ScheduleJobFactory>();
             services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
-            
-            // 注册自定义执行的任务
-            if(quartzConfig.Mode == "Center")
+
+            services.AddHostedService<QuartzJobHostService>();
+            var jobNamespace = BASE_HOST.Append(".QuartzJobs");
+            quartzConfig.ScheduleJobs.ForEach(e =>
             {
-                // 定时任务状态监控
-                services.AddHostedService<MonitorTaskStatusHostService>();
-                services.AddSingleton<MonitorTaskStatusJob>();
-                // 定时任务日志监控
-                services.AddHostedService<DeleteTaskLogHostService>();
-                services.AddSingleton<DeleteTaskLogJob>();
-            }
-            else if (quartzConfig.Mode == "Job")
-            {
-                services.AddHostedService<QuartzJobHostService>();
-                var jobNamespace = BASE_HOST.Append(".QuartzJobs");
-                quartzConfig.ScheduleJobs.ForEach(e =>
+                var typeName = jobNamespace + "." + e.TypeName;
+                var jobType = Assembly.Load(BASE_HOST).GetType(typeName);
+                if (jobType != null)
                 {
-                    var typeName = jobNamespace + "." + e.TypeName;
-                    var jobType = Assembly.Load(BASE_HOST).GetType(typeName);
-                    if (jobType != null)
-                    {
-                        e.JobType = jobType;
-                        services.AddSingleton(e.JobType);
-                    }
-                });
-            }
+                    e.JobType = jobType;
+                    services.AddSingleton(e.JobType);
+                }
+            });
             #endregion
         }
 
@@ -192,10 +179,10 @@ namespace ScheduleJob.Host
                 .Where(t => t.Name.EndsWith("Manager"))
                 .AsImplementedInterfaces();
 
-            builder.RegisterType(typeof(OneForAll_JobContext)).Named<DbContext>("OneForAll_JobContext");
+            builder.RegisterType(typeof(JobContext)).Named<DbContext>("JobContext");
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_REPOSITORY))
                .Where(t => t.Name.EndsWith("Repository"))
-               .WithParameter(ResolvedParameter.ForNamed<DbContext>("OneForAll_JobContext"))
+               .WithParameter(ResolvedParameter.ForNamed<DbContext>("JobContext"))
                .AsImplementedInterfaces();
         }
 
@@ -214,7 +201,7 @@ namespace ScheduleJob.Host
                 RequestPath = new PathString("/resources"),
                 OnPrepareResponse = (c) =>
                 {
-                    c.Context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+                    c.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
                 }
             });
             app.UseDefaultFiles();

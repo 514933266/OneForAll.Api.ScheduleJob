@@ -15,8 +15,6 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using TimeCrontab;
-using static Azure.Core.HttpHeader;
-using static Quartz.Logging.OperationName;
 
 namespace ScheduleJob.Host.QuartzJobs
 {
@@ -147,7 +145,7 @@ namespace ScheduleJob.Host.QuartzJobs
             sb.Append($"发生时间：{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")}  \r\n");
             webhookUrls.ForEach(async e =>
             {
-                await _umsHttpService.SendToWechatQyRobotMarkdownAsync(new UmsWechatQyRobotTextForm()
+                await _umsHttpService.SendToWechatQyRobotMarkdownAsync(new UmsWechatQyRobotTextRequest()
                 {
                     WebhookUrl = e,
                     Content = sb.ToString()

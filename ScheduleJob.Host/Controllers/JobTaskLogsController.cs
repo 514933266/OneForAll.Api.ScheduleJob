@@ -12,6 +12,7 @@ using ScheduleJob.Public.Models;
 using ScheduleJob.Host.Filters;
 using Autofac.Core;
 using ScheduleJob.Domain.Enums;
+using OneForAll.Core.OAuth;
 
 namespace ScheduleJob.Host.Controllers
 {

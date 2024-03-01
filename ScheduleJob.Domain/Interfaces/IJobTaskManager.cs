@@ -64,5 +64,13 @@ namespace ScheduleJob.Domain.Interfaces
         /// <param name="ids">任务id</param>
         /// <returns>结果</returns>
         Task<BaseErrType> DeleteAsync(IEnumerable<Guid> ids);
+
+        /// <summary>
+        /// 设置负责人
+        /// </summary>
+        /// <param name="id">任务id</param>
+        /// <param name="personIds">人员id</param>
+        /// <returns></returns>
+        Task<BaseErrType> AddPersonsAsync(Guid id, IEnumerable<Guid> personIds);
     }
 }

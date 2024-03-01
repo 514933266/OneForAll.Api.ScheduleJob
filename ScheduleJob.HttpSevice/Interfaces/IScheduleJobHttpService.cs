@@ -3,6 +3,7 @@ using ScheduleJob.HttpService.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,7 +19,7 @@ namespace ScheduleJob.HttpService.Interfaces
         /// </summary>
         /// <param name="request">实体</param>
         /// <returns></returns>
-        Task<BaseErrType> RegisterAsync(JobRegisterRequest request);
+        Task<BaseMessage> RegisterAsync(JobRegisterRequest request);
 
         /// <summary>
         /// 定时服务下线
@@ -26,7 +27,7 @@ namespace ScheduleJob.HttpService.Interfaces
         /// <param name="appId">应用程序id</param>
         /// <param name="taskName">定时任务名称</param>
         /// <returns结果</returns>
-        Task DownLineAsync(string appId, string taskName);
+        Task<BaseMessage> DownLineAsync(string appId, string taskName);
 
         /// <summary>
         /// 定时服务运行日志
@@ -35,6 +36,27 @@ namespace ScheduleJob.HttpService.Interfaces
         /// <param name="taskName">定时任务名称</param>
         /// <param name="log">日志内容</param>
         /// <returns结果</returns>
-        Task<BaseErrType> LogAsync(string appId, string taskName, string log);
+        Task<BaseMessage> LogAsync(string appId, string taskName, string log);
+
+        /// <summary>
+        /// 暂停定时服务
+        /// </summary>
+        /// <param name="taskName">定时任务名称</param>
+        /// <returns结果</returns>
+        Task<BaseMessage> StopAsync(string url, string taskName);
+
+        /// <summary>
+        /// 重启定时服务
+        /// </summary>
+        /// <param name="taskName">定时任务名称</param>
+        /// <returns结果</returns>
+        Task<BaseMessage> ResumeAsync(string url, string taskName);
+
+        /// <summary>
+        /// 执行一次定时服务
+        /// </summary>
+        /// <param name="taskName">定时任务名称</param>
+        /// <returns结果</returns>
+        Task<BaseMessage> ExcuteAsync(string url, string taskName);
     }
 }

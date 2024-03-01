@@ -1,4 +1,5 @@
 ﻿using OneForAll.Core;
+using OneForAll.Core.OAuth;
 using ScheduleJob.Application.Dtos;
 using ScheduleJob.Domain.AggregateRoots;
 using ScheduleJob.Domain.Enums;
@@ -72,5 +73,30 @@ namespace ScheduleJob.Application.Interfaces
         /// <param name="log">日志内容</param>
         /// <returns>结果</returns>
         Task<BaseErrType> AddLogAsync(string appId, string taskName, string log);
+
+        /// <summary>
+        /// 改变定时任务状态
+        /// </summary>
+        /// <param name="id">任务id</param>
+        /// <param name="status">状态</param>
+        /// <param name="loginUser">登录用户</param>
+        /// <returns></returns>
+        Task<BaseErrType> ChangeStatusAsync(Guid id, JobTaskStatusEnum status, LoginUser loginUser);
+
+        /// <summary>
+        /// 执行一次定时任务
+        /// </summary>
+        /// <param name="id">任务id</param>
+        /// <param name="loginUser">登录用户</param>
+        /// <returns></returns>
+        Task<BaseErrType> ExcuteAsync(Guid id, LoginUser loginUser);
+
+        /// <summary>
+        /// 设置负责人
+        /// </summary>
+        /// <param name="id">任务id</param>
+        /// <param name="personIds">人员id</param>
+        /// <returns></returns>
+        Task<BaseErrType> AddPersonsAsync(Guid id, IEnumerable<Guid> personIds);
     }
 }

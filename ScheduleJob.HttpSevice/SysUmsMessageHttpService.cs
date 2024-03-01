@@ -32,7 +32,7 @@ namespace ScheduleJob.HttpService
         /// </summary>
         /// <param name="form">表单</param>
         /// <returns></returns>
-        public async Task SendToWechatQyRobotMarkdownAsync(UmsWechatQyRobotTextForm form)
+        public async Task SendToWechatQyRobotMarkdownAsync(UmsWechatQyRobotTextRequest form)
         {
             var client = GetHttpClient(_config.UmsWechatQyRobot);
             if (client != null && client.BaseAddress != null)

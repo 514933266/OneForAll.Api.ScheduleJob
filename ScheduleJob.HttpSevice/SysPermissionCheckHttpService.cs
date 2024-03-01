@@ -12,6 +12,7 @@ using OneForAll.Core.Extension;
 using ScheduleJob.Public.Models;
 using ScheduleJob.HttpService.Models;
 using ScheduleJob.HttpService.Interfaces;
+using OneForAll.Core.OAuth;
 
 namespace ScheduleJob.HttpService
 {
@@ -38,7 +39,7 @@ namespace ScheduleJob.HttpService
         {
             if (!Token.IsNullOrEmpty())
             {
-                var claims = _httpContext.HttpContext.User.Claims;
+                var claims = _httpContextAccessor.HttpContext.User.Claims;
                 var uid = claims.FirstOrDefault(e => e.Type == UserClaimType.USER_ID).Value;
 
                 var client = GetHttpClient(_config.SysPermissionCheck);

@@ -20,7 +20,6 @@ namespace ScheduleJob.Host.Providers
         private readonly QuartzScheduleJobConfig _config;
         private readonly IJobFactory _jobFactory;
         private readonly ISchedulerFactory _schedulerFactory;
-        private readonly IHttpContextAccessor _httpContextAccessor;
 
         private readonly IScheduleJobHttpService _jobHttpService;
 
@@ -29,13 +28,11 @@ namespace ScheduleJob.Host.Providers
             QuartzScheduleJobConfig config,
             IJobFactory jobFactory,
             ISchedulerFactory schedulerFactory,
-            IHttpContextAccessor httpContextAccessor,
             IScheduleJobHttpService jobHttpService)
         {
             _config = config;
             _jobFactory = jobFactory;
             _schedulerFactory = schedulerFactory;
-            _httpContextAccessor = httpContextAccessor;
             _jobHttpService = jobHttpService;
         }
 
@@ -52,24 +49,25 @@ namespace ScheduleJob.Host.Providers
             {
                 if (jobSchedule.JobType == null)
                     return;
-                var errType = await _jobHttpService.RegisterAsync(new HttpService.Models.JobRegisterRequest()
-                {
-                    AppId = _config.AppId,
-                    AppSecret = _config.AppSecret,
-                    GroupName = _config.GroupName,
-                    NodeName = _config.NodeName,
-                    Cron = jobSchedule.Corn,
-                    Name = jobSchedule.TypeName,
-                    Remark = jobSchedule.Remark
-                });
+                // 调度中心不需要请求判断任务是否允许注册
+                //var msg = await _jobHttpService.RegisterAsync(new HttpService.Models.JobRegisterRequest()
+                //{
+                //    AppId = _config.AppId,
+                //    AppSecret = _config.AppSecret,
+                //    GroupName = _config.GroupName,
+                //    NodeName = _config.NodeName,
+                //    Cron = jobSchedule.Corn,
+                //    Name = jobSchedule.TypeName,
+                //    Remark = jobSchedule.Remark
+                //});
 
                 // 调度中心允许注册才启动服务
-                if (errType == OneForAll.Core.BaseErrType.Success)
-                {
-                    var job = CreateJob(jobSchedule);
-                    var trigger = CreateTrigger(jobSchedule);
-                    await Scheduler.ScheduleJob(job, trigger, cancellationToken);
-                }
+                //if (msg.Status)
+                //{
+                var job = CreateJob(jobSchedule);
+                var trigger = CreateTrigger(jobSchedule);
+                await Scheduler.ScheduleJob(job, trigger, cancellationToken);
+                //}
             }
             await Scheduler.Start(cancellationToken);
         }

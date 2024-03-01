@@ -1,29 +1,89 @@
 ﻿using System;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using OneForAll.Core;
-using ScheduleJob.Application.Dtos;
 using System.Threading.Tasks;
-using ScheduleJob.Host.Models;
-using ScheduleJob.Domain.Models;
-using ScheduleJob.Application.Interfaces;
-using System.Collections.Generic;
+using Quartz;
+using System.Reflection;
+using OneForAll.Core;
+using Microsoft.AspNetCore.Authorization;
 using ScheduleJob.Public.Models;
-using ScheduleJob.Host.Filters;
 
 namespace ScheduleJob.Host.Controllers
 {
     [Route("api/[controller]")]
+    [Authorize(Roles = UserRoleType.ADMIN)]
     public class StartupsController : Controller
     {
-        public StartupsController()
+        private readonly string _assemblyName;
+        private readonly ISchedulerFactory _schedulerFactory;
+
+        public StartupsController(ISchedulerFactory schedulerFactory)
         {
+            _assemblyName = Assembly.GetEntryAssembly().GetName().Name;
+            _schedulerFactory = schedulerFactory;
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public string Get()
         {
             return "项目启动成功...";
+        }
+
+        /// <summary>
+        /// 暂停定时任务
+        /// </summary>
+        /// <param name="jobName">定时任务名称</param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("Default/Jobs/{jobName}/Stop")]
+        public async Task<BaseMessage> PauseJob(string jobName)
+        {
+            var msg = new BaseMessage();
+            var scheduler = await _schedulerFactory.GetScheduler();
+            var jobKey = new JobKey($"{_assemblyName}.QuartzJobs.{jobName}");
+            var job = scheduler.GetJobDetail(jobKey);
+            if (job.Result == null)
+                return msg.Fail("不存在该定时任务");
+            await scheduler.PauseJob(jobKey);
+            return msg.Success("暂停成功");
+        }
+
+        /// <summary>
+        /// 重启定时任务
+        /// </summary>
+        /// <param name="jobName">定时任务名称</param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("Default/Jobs/{jobName}/Resume")]
+        public async Task<BaseMessage> ResumeJob(string jobName)
+        {
+            var msg = new BaseMessage();
+            var scheduler = await _schedulerFactory.GetScheduler();
+            var jobKey = new JobKey($"{_assemblyName}.QuartzJobs.{jobName}");
+            var job = scheduler.GetJobDetail(jobKey);
+            if (job.Result == null)
+                return msg.Fail("不存在该定时任务");
+            await scheduler.PauseJob(jobKey);
+            return msg.Success("启动成功");
+        }
+
+        /// <summary>
+        /// 执行一次定时任务
+        /// </summary>
+        /// <param name="jobName">定时任务名称</param>
+        /// <returns></returns>
+        [HttpPost]
+        [Route("Default/Jobs/{jobName}/Excute")]
+        public async Task<BaseMessage> ExcuteJob(string jobName)
+        {
+            var msg = new BaseMessage();
+            var scheduler = await _schedulerFactory.GetScheduler();
+            var jobKey = new JobKey($"{_assemblyName}.QuartzJobs.{jobName}");
+            var job = scheduler.GetJobDetail(jobKey);
+            if (job.Result == null)
+                return msg.Fail("不存在该定时任务");
+            await scheduler.TriggerJob(jobKey);
+            return msg.Success("任务触发执行成功");
         }
     }
 }

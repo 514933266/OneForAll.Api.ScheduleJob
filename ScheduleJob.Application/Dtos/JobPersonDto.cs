@@ -1,34 +1,35 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ScheduleJob.Public.Models
+namespace ScheduleJob.Application.Dtos
 {
     /// <summary>
-    /// 登录用户
+    /// 人员信息
     /// </summary>
-    public class LoginUser
+    public class JobPersonDto
     {
         /// <summary>
-        /// 所属机构Id
+        /// 唯一键
         /// </summary>
         public Guid Id { get; set; }
 
         /// <summary>
-        /// 所属机构id
-        /// </summary>
-        public Guid SysTenantId { get; set; }
-
-        /// <summary>
-        /// 名称
+        /// 姓名
         /// </summary>
         public string Name { get; set; }
 
         /// <summary>
-        /// 是否默认
+        /// 邮箱
         /// </summary>
-        public bool IsDefault { get; set; }
+        public string Email { get; set; }
+
+        /// <summary>
+        /// 联系方式
+        /// </summary>
+        public string Mobile { get; set; }
     }
 }

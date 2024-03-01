@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using OneForAll.Core.Extension;
 using ScheduleJob.Public.Models;
+using OneForAll.Core.OAuth;
 
 namespace ScheduleJob.HttpService
 {
@@ -16,13 +17,13 @@ namespace ScheduleJob.HttpService
     public class BaseHttpService
     {
         private readonly string AUTH_KEY = "Authorization";
-        protected readonly IHttpContextAccessor _httpContext;
+        protected readonly IHttpContextAccessor _httpContextAccessor;
         protected readonly IHttpClientFactory _httpClientFactory;
         public BaseHttpService(
-            IHttpContextAccessor httpContext,
+            IHttpContextAccessor httpContextAccessor,
             IHttpClientFactory httpClientFactory)
         {
-            _httpContext = httpContext;
+            _httpContextAccessor = httpContextAccessor;
             _httpClientFactory = httpClientFactory;
         }
 
@@ -33,7 +34,7 @@ namespace ScheduleJob.HttpService
         {
             get
             {
-                var context = _httpContext.HttpContext;
+                var context = _httpContextAccessor.HttpContext;
                 if (context != null)
                 {
                     return context.Request.Headers
@@ -44,76 +45,21 @@ namespace ScheduleJob.HttpService
             }
         }
 
-        protected Guid UserId
-        {
-            get
-            {
-                var userId = _httpContext.HttpContext
-                .User
-                .Claims
-                .FirstOrDefault(e => e.Type == UserClaimType.USER_ID);
-
-                if (userId != null)
-                {
-                    return new Guid(userId.Value);
-                }
-                return Guid.Empty;
-            }
-        }
-
-        protected string UserName
-        {
-            get
-            {
-                var username = _httpContext.HttpContext
-                .User
-                .Claims
-                .FirstOrDefault(e => e.Type == UserClaimType.USERNAME);
-
-                if (username != null)
-                {
-                    return username.Value;
-                }
-                return null;
-            }
-        }
-
-        protected Guid TenantId
-        {
-            get
-            {
-                var tenantId = _httpContext.HttpContext
-                .User
-                .Claims
-                .FirstOrDefault(e => e.Type == UserClaimType.TENANT_ID);
-
-                if (tenantId != null)
-                {
-                    return new Guid(tenantId.Value);
-                }
-                return Guid.Empty;
-            }
-        }
-
         protected LoginUser LoginUser
         {
             get
             {
-                var name = _httpContext.HttpContext
-                .User
-                .Claims
-                .FirstOrDefault(e => e.Type == UserClaimType.USER_NICKNAME);
-
-                var role = _httpContext.HttpContext
-                .User
-                .Claims
-                .FirstOrDefault(e => e.Type == UserClaimType.ROLE);
+                var role = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(e => e.Type == UserClaimType.ROLE);
+                var userId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(e => e.Type == UserClaimType.USER_ID);
+                var name = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(e => e.Type == UserClaimType.USER_NICKNAME);
+                var tenantId = _httpContextAccessor.HttpContext.User.Claims.FirstOrDefault(e => e.Type == UserClaimType.TENANT_ID);
 
                 return new LoginUser()
                 {
-                    Id = UserId,
-                    Name = name?.Value,
-                    SysTenantId = TenantId
+                    Id = userId == null ? Guid.Empty : new Guid(userId.Value),
+                    Name = name == null ? "无" : name?.Value,
+                    SysTenantId = tenantId == null ? Guid.Empty : new Guid(tenantId?.Value),
+                    IsDefault = role == null ? false : role.Value.Equals(UserRoleType.RULER)
                 };
             }
         }

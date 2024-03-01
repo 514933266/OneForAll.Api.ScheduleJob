@@ -17,6 +17,6 @@ namespace ScheduleJob.HttpService.Interfaces
         /// </summary>
         /// <param name="form">表单</param>
         /// <returns></returns>
-        Task SendToWechatQyRobotMarkdownAsync(UmsWechatQyRobotTextForm form);
+        Task SendToWechatQyRobotMarkdownAsync(UmsWechatQyRobotTextRequest form);
     }
 }
