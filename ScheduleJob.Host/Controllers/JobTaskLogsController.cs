@@ -39,7 +39,7 @@ namespace ScheduleJob.Host.Controllers
         /// <param name="taskName">定时任务名称</param>
         /// <param name="type">日志类型</param>
         /// <param name="key">关键字</param>
-        /// <param name="beiginTime">开始时间</param>
+        /// <param name="startTime">开始时间</param>
         /// <param name="endTime">结束时间</param>
         /// <returns>权限列表</returns>
         [HttpGet]
@@ -48,14 +48,14 @@ namespace ScheduleJob.Host.Controllers
         public async Task<PageList<JobTaskLogDto>> GetPageAsync(
             int pageIndex,
             int pageSize,
-            [FromQuery] string appId,
-            [FromQuery] string taskName,
-            [FromQuery] JobTaskLogTypeEnum type,
-            [FromQuery] string key,
-            [FromQuery] DateTime? beiginTime,
-            [FromQuery] DateTime? endTime)
+            [FromQuery] string appId = default,
+            [FromQuery] string taskName = default,
+            [FromQuery] JobTaskLogTypeEnum type = JobTaskLogTypeEnum.None,
+            [FromQuery] string key = default,
+            [FromQuery] DateTime? startTime = default,
+            [FromQuery] DateTime? endTime = default)
         {
-            return await _service.GetPageAsync(pageIndex, pageSize, appId, taskName, type, key, beiginTime, endTime);
+            return await _service.GetPageAsync(pageIndex, pageSize, appId, taskName, type, key, startTime, endTime);
         }
     }
 }

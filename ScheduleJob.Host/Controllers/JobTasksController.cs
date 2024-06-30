@@ -43,9 +43,9 @@ namespace ScheduleJob.Host.Controllers
         public async Task<PageList<JobTaskDto>> GetPageAsync(
             int pageIndex,
             int pageSize,
-            [FromQuery] string key,
-            [FromQuery] string groupName,
-            [FromQuery] string nodeName)
+            [FromQuery] string key = default,
+            [FromQuery] string groupName = default,
+            [FromQuery] string nodeName = default)
         {
             return await _service.GetPageAsync(pageIndex, pageSize, key, groupName, nodeName);
         }

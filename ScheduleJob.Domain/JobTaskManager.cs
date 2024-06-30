@@ -23,17 +23,14 @@ namespace ScheduleJob.Domain
     public class JobTaskManager : JobBaseManager, IJobTaskManager
     {
         private readonly IJobTaskRepository _repository;
-        private readonly IJobPersonRepository _personRepository;
         private readonly IJobTaskPersonContactRepository _contactRepository;
         public JobTaskManager(
             IMapper mapper,
             IHttpContextAccessor httpContextAccessor,
             IJobTaskRepository repository,
-            IJobPersonRepository personRepository,
             IJobTaskPersonContactRepository contactRepository) : base(mapper, httpContextAccessor)
         {
             _repository = repository;
-            _personRepository = personRepository;
             _contactRepository = contactRepository;
         }
 
@@ -179,24 +176,7 @@ namespace ScheduleJob.Domain
                 return BaseErrType.DataNotFound;
             if (!personIds.Any())
                 return BaseErrType.DataEmpty;
-
-            var exists = await _contactRepository.GetListAsync(w => personIds.Contains(w.JobPersonId));
-            if (exists.Any())
-                await _contactRepository.DeleteRangeAsync(exists);
-            var persons = await _personRepository.GetListAsync(w => personIds.Contains(w.Id));
-            if (!persons.Any())
-                return BaseErrType.DataEmpty;
-
-            var items = new List<JobTaskPersonContact>();
-            foreach (var person in persons)
-            {
-                items.Add(new JobTaskPersonContact()
-                {
-                    JobTaskId = id,
-                    JobPersonId = person.Id
-                });
-            }
-            return await ResultAsync(() => _contactRepository.AddRangeAsync(items));
+            return BaseErrType.Fail;
         }
     }
 }

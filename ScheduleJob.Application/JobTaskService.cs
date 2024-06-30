@@ -63,12 +63,6 @@ namespace ScheduleJob.Application
             var data = await _manager.GetPageAsync(pageIndex, pageSize, key, groupName, nodeName);
             var items = _mapper.Map<IEnumerable<JobTask>, IEnumerable<JobTaskDto>>(data.Items);
             var persons = await _contactRepository.GetListPersonAsync(items.Select(s => s.Id));
-            foreach (var item in items)
-            {
-                var pers = persons.Where(w => w.JobTaskId == item.Id).Select(s => s.Name).ToList();
-                if (pers.Any())
-                    item.Persons.AddRange(pers);
-            }
             return new PageList<JobTaskDto>(data.Total, data.PageSize, data.PageIndex, items);
         }
 

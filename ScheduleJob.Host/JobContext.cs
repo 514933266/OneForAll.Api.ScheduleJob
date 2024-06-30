@@ -42,13 +42,6 @@ namespace ScheduleJob.Host
 
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
             });
-
-            modelBuilder.Entity<JobPerson>(entity =>
-            {
-                entity.ToTable("Job_Person");
-
-                entity.Property(e => e.Id).ValueGeneratedOnAdd();
-            });
         }
     }
 }

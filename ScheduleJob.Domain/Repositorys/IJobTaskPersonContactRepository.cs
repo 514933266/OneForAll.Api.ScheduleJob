@@ -1,6 +1,5 @@
 ﻿using OneForAll.EFCore;
 using ScheduleJob.Domain.AggregateRoots;
-using ScheduleJob.Domain.Aggregates;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,6 +18,6 @@ namespace ScheduleJob.Domain.Repositorys
         /// </summary>
         /// <param name="taskIds">定时任务id</param>
         /// <returns>列表</returns>
-        Task<IEnumerable<JobTaskPersonAggr>> GetListPersonAsync(IEnumerable<Guid> taskIds);
+        Task<IEnumerable<JobTaskPersonContact>> GetListPersonAsync(IEnumerable<Guid> taskIds);
     }
 }

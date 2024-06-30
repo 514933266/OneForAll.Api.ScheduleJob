@@ -20,26 +20,5 @@ namespace ScheduleJob.Application.Interfaces
         /// </summary>
         /// <returns>列表</returns>
         Task<IEnumerable<JobPersonDto>> GetListAsync();
-
-        /// <summary>
-        /// 添加
-        /// </summary>
-        /// <param name="form">表单</param>
-        /// <returns>结果</returns>
-        Task<BaseErrType> AddAsync(JobPersonForm form);
-
-        /// <summary>
-        /// 修改
-        /// </summary>
-        /// <param name="form">表单</param>
-        /// <returns>结果</returns>
-        Task<BaseErrType> UpdateAsync(JobPersonForm form);
-
-        /// <summary>
-        /// 删除
-        /// </summary>
-        /// <param name="id">实体id</param>
-        /// <returns>结果</returns>
-        Task<BaseErrType> DeleteAsync(Guid id);
     }
 }

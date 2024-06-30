@@ -129,14 +129,6 @@ namespace ScheduleJob.Host
 
             #endregion
 
-            #region EFCore
-
-            services.AddDbContext<JobContext>(options =>
-                options.UseSqlServer(Configuration["ConnectionStrings:Default"]));
-            services.AddScoped<ITenantProvider, TenantProvider>();
-
-            #endregion
-
             #region Quartz
 
             var quartzConfig = new QuartzScheduleJobConfig();
@@ -167,19 +159,25 @@ namespace ScheduleJob.Host
                .Where(t => t.Name.EndsWith("Service"))
                .AsImplementedInterfaces();
 
-            // 基础
-            builder.RegisterGeneric(typeof(Repository<>))
-                .As(typeof(IEFCoreRepository<>));
-
+            // 应用层
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_APPLICATION))
                 .Where(t => t.Name.EndsWith("Service"))
                 .AsImplementedInterfaces();
 
+            // 领域层
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_DOMAIN))
                 .Where(t => t.Name.EndsWith("Manager"))
                 .AsImplementedInterfaces();
 
-            builder.RegisterType(typeof(JobContext)).Named<DbContext>("JobContext");
+            // 仓储层
+            builder.Register(p =>
+            {
+                var optionBuilder = new DbContextOptionsBuilder<JobContext>();
+                optionBuilder.UseSqlServer(Configuration["ConnectionStrings:Default"]);
+                return optionBuilder.Options;
+            }).AsSelf();
+
+            builder.RegisterType<JobContext>().Named<DbContext>("JobContext");
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_REPOSITORY))
                .Where(t => t.Name.EndsWith("Repository"))
                .WithParameter(ResolvedParameter.ForNamed<DbContext>("JobContext"))

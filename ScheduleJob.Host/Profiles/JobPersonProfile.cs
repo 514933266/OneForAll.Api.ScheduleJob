@@ -9,8 +9,6 @@ namespace ScheduleJob.Host.Profiles
     {
         public JobPersonProfile()
         {
-            CreateMap<JobPerson, JobPersonDto>();
-            CreateMap<JobPersonForm, JobPerson>();
         }
     }
 }

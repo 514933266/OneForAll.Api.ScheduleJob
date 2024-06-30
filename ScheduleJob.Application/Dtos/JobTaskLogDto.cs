@@ -26,7 +26,7 @@ namespace ScheduleJob.Application.Dtos
         public string AppId { get; set; }
 
         /// <summary>
-        ///任务名称
+        /// 任务名称
         /// </summary>
         public string TaskName { get; set; }
 

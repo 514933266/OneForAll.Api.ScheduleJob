@@ -25,10 +25,10 @@ namespace ScheduleJob.Domain.AggregateRoots
         public Guid JobTaskId { get; set; }
 
         /// <summary>
-        /// 用户id
+        /// OA系统用户id
         /// </summary>
         [Required]
-        public Guid JobPersonId { get; set; }
+        public Guid OAPersonId { get; set; }
 
     }
 }
