@@ -172,15 +172,15 @@ namespace ScheduleJob.Host
             // 仓储层
             builder.Register(p =>
             {
-                var optionBuilder = new DbContextOptionsBuilder<JobContext>();
+                var optionBuilder = new DbContextOptionsBuilder<JobDbContext>();
                 optionBuilder.UseSqlServer(Configuration["ConnectionStrings:Default"]);
                 return optionBuilder.Options;
             }).AsSelf();
 
-            builder.RegisterType<JobContext>().Named<DbContext>("JobContext");
+            builder.RegisterType<JobDbContext>().Named<DbContext>("JobDbContext");
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_REPOSITORY))
                .Where(t => t.Name.EndsWith("Repository"))
-               .WithParameter(ResolvedParameter.ForNamed<DbContext>("JobContext"))
+               .WithParameter(ResolvedParameter.ForNamed<DbContext>("JobDbContext"))
                .AsImplementedInterfaces();
         }
 

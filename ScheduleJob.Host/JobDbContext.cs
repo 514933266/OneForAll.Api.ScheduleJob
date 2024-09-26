@@ -5,9 +5,9 @@ using ScheduleJob.Domain.AggregateRoots;
 
 namespace ScheduleJob.Host
 {
-    public partial class JobContext : DbContext
+    public partial class JobDbContext : DbContext
     {
-        public JobContext(DbContextOptions<JobContext> options)
+        public JobDbContext(DbContextOptions<JobDbContext> options)
             : base(options)
         {
 
