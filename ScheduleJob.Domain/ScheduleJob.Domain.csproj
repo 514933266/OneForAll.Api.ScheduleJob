@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="16.0.0" />
+    <PackageReference Include="OneForAll.Core" Version="2.1.1" />
+    <PackageReference Include="OneForAll.EFCore" Version="2.1.1" />
+    <PackageReference Include="OneForAll.File" Version="2.1.1" />
+    <PackageReference Include="Quartz" Version="3.15.0" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Aggregates\" />
+    <Folder Include="ExcelModels\" />
+    <Folder Include="ValueObjects\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScheduleJob.HttpSevice\ScheduleJob.HttpService.csproj" />
+    <ProjectReference Include="..\ScheduleJob.Public\ScheduleJob.Public.csproj" />
+  </ItemGroup>
+
+</Project>
