@@ -42,6 +42,14 @@ namespace ScheduleJob.Domain.Interfaces
         Task<BaseErrType> HeartbeatAsync(string appId, string taskName);
 
         /// <summary>
+        /// 更新最后运行时间
+        /// </summary>
+        /// <param name="appId">应用程序id</param>
+        /// <param name="taskName">定时任务名称</param>
+        /// <returns>结果</returns>
+        Task<BaseErrType> UpdateRunningTimeAsync(string appId, string taskName);
+
+        /// <summary>
         /// 更改定时任务状态
         /// </summary>
         /// <param name="appId">应用程序id</param>

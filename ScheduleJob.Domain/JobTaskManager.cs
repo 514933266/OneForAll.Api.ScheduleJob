@@ -123,6 +123,22 @@ namespace ScheduleJob.Domain
         }
 
         /// <summary>
+        /// 更新最后运行时间
+        /// </summary>
+        /// <param name="appId">应用程序id</param>
+        /// <param name="taskName">定时任务名称</param>
+        /// <returns>结果</returns>
+        public async Task<BaseErrType> UpdateRunningTimeAsync(string appId, string taskName)
+        {
+            var data = await _repository.GetAsync(w => w.AppId == appId && w.Name == taskName && w.IsEnabled);
+            if (data == null)
+                return BaseErrType.DataNotFound;
+
+            data.RunningTime = DateTime.UtcNow;
+            return await ResultAsync(() => _repository.SaveChangesAsync());
+        }
+
+        /// <summary>
         /// 更改定时任务状态
         /// </summary>
         /// <param name="appId">应用程序id</param>

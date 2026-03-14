@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Http;
 using OneForAll.Core;
+using OneForAll.Core.Extension;
 using ScheduleJob.HttpService.Interfaces;
 using ScheduleJob.HttpService.Models;
 using System;
@@ -35,7 +36,7 @@ namespace ScheduleJob.HttpService
         public async Task AddAsync(SysExceptionLogRequest entity)
         {
             var client = GetHttpClient(_config.SysLog);
-            if (client != null && client.BaseAddress != null)
+            if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
                 await client.PostAsync("api/SysExceptionLogs", entity, new JsonMediaTypeFormatter());
             }

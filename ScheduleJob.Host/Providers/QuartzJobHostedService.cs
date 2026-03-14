@@ -60,7 +60,7 @@ namespace ScheduleJob.Host.Providers
                     AppSecret = _config.AppSecret,
                     GroupName = _config.GroupName,
                     NodeName = _config.NodeName,
-                    Cron = jobSchedule.Corn,
+                    Cron = jobSchedule.Cron,
                     Name = jobSchedule.TypeName,
                     Remark = jobSchedule.Remark
                 });
@@ -96,6 +96,7 @@ namespace ScheduleJob.Host.Providers
                 .Create(schedule.JobType)
                 .WithIdentity(schedule.JobType.FullName)
                 .WithDescription(schedule.JobType.Name)
+                .UsingJobData("Data", schedule.Data)
                 .Build();
         }
 
@@ -105,7 +106,7 @@ namespace ScheduleJob.Host.Providers
             return TriggerBuilder
                 .Create()
                 .WithIdentity(schedule.JobType.FullName.Append(".Trigger"))
-                .WithCronSchedule(schedule.Corn, x => x.InTimeZone(TimeZoneInfo.FindSystemTimeZoneById("China Standard Time")))
+                .WithCronSchedule(schedule.Cron, x => x.InTimeZone(TimeZoneInfo.FindSystemTimeZoneById("China Standard Time")))
                 .WithDescription(schedule.JobType.Name.Append(".Trigger"))
                 .Build();
         }

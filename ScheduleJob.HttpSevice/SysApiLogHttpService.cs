@@ -35,7 +35,7 @@ namespace ScheduleJob.HttpService
         public async Task AddAsync(SysApiLogRequest form)
         {
             var client = GetHttpClient(_config.SysLog);
-            if (client != null && client.BaseAddress != null)
+            if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
                 var res = await client.PostAsync("api/SysApiLogs", form, new JsonMediaTypeFormatter());
                 var str = res.Content.ReadAsStringAsync();

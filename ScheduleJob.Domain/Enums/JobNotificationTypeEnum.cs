@@ -14,6 +14,11 @@ namespace ScheduleJob.Domain.Enums
         /// <summary>
         /// 企业微信机器人
         /// </summary>
-        WxQtRoot = 0
+        WxQtRoot = 0,
+
+        /// <summary>
+        /// 钉钉机器人
+        /// </summary>
+        DingTalkRobot = 1,
     }
 }

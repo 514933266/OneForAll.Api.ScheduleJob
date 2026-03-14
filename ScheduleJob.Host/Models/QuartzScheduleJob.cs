@@ -18,13 +18,18 @@ namespace ScheduleJob.Host.Models
         public Type JobType { get; set; }
 
         /// <summary>
-        /// Corn表达式
+        /// Cron表达式
         /// </summary>
-        public string Corn { get; set; }
+        public string Cron { get; set; }
 
         /// <summary>
         /// 备注
         /// </summary>
         public string Remark { get; set; }
+
+        /// <summary>
+        /// 传递参数
+        /// </summary>
+        public string Data { get; set; }
     }
 }

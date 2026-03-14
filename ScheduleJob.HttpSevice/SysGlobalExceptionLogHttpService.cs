@@ -37,7 +37,7 @@ namespace ScheduleJob.HttpService
             form.CreateTime = DateTime.UtcNow;
 
             var client = GetHttpClient(_config.SysLog);
-            if (client != null && client.BaseAddress != null)
+            if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
                 await client.PostAsync("api/SysGlobalExceptionLogs", form, new JsonMediaTypeFormatter());
             }

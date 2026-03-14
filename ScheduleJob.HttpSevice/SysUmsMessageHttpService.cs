@@ -35,9 +35,24 @@ namespace ScheduleJob.HttpService
         public async Task SendToWechatQyRobotMarkdownAsync(UmsWechatQyRobotTextRequest form)
         {
             var client = GetHttpClient(_config.SysUms);
-            if (client != null && client.BaseAddress != null)
+            if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
                 await client.PostAsync("/api/WechatQyRobot/Markdown", form, new JsonMediaTypeFormatter());
+            }
+        }
+
+        /// <summary>
+        /// 钉钉机器人通知：Mardown
+        /// </summary>
+        /// <param name="form">表单</param>
+        /// <returns></returns>
+        public async Task SendToDingTalkMarkdownAsync(UmsDingTalkRobotMessageRequest form)
+        {
+            var client = GetHttpClient(_config.SysUms);
+            if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
+            {
+                var url = $"{client.BaseAddress}api/DingTalkMessages/Robot/Markdown?isSync=true";
+                await client.PostAsync(new Uri(url), form, new JsonMediaTypeFormatter());
             }
         }
     }

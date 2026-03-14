@@ -120,6 +120,12 @@ namespace ScheduleJob.Application
             var errType = await _manager.HeartbeatAsync(appId, taskName);
             if (errType == BaseErrType.Success)
             {
+                // 运行日志同时更新最后运行时间
+                if (!isException)
+                {
+                    await _manager.UpdateRunningTimeAsync(appId, taskName);
+                }
+
                 await _logManager.AddAsync(new JobTaskLogForm()
                 {
                     AppId = appId,

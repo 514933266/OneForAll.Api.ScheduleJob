@@ -1,6 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
 using OneForAll.Core;
-using OneForAll.Core.Extension;
 using ScheduleJob.HttpService.Interfaces;
 using ScheduleJob.HttpService.Models;
 using System;
@@ -38,7 +37,7 @@ namespace ScheduleJob.HttpService
         public async Task<BaseMessage> RegisterAsync(JobRegisterRequest request)
         {
             var client = GetHttpClient(_config.SysJob);
-            if (client != null && client.BaseAddress != null)
+            if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
                 var response = await client.PostAsync("/api/ScheduleJobs", request, new JsonMediaTypeFormatter());
                 var msg = await response.Content.ReadAsAsync<BaseMessage>();
@@ -56,7 +55,7 @@ namespace ScheduleJob.HttpService
         public async Task<BaseMessage> DownLineAsync(string appId, string taskName)
         {
             var client = GetHttpClient(_config.SysJob);
-            if (client != null && client.BaseAddress != null)
+            if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
                 var url = $"{client.BaseAddress}/{appId}/{taskName}";
                 var response = await client.DeleteAsync(url);
@@ -76,7 +75,7 @@ namespace ScheduleJob.HttpService
         public async Task<BaseMessage> LogAsync(string appId, string taskName, string log)
         {
             var client = GetHttpClient(_config.SysJob);
-            if (client != null && client.BaseAddress != null)
+            if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
                 var url = $"{client.BaseAddress}/{appId}/{taskName}";
                 var response = await client.PostAsync(url, log, new JsonMediaTypeFormatter());

@@ -36,7 +36,7 @@ namespace ScheduleJob.HttpService
         public async Task<BaseMessage> RequestAsync()
         {
             var client = GetHttpClient(_config.SysJob);
-            if (client != null && client.BaseAddress != null)
+            if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
                 var response = await client.GetAsync("/api/Startups");
                 var msg = await response.Content.ReadAsAsync<BaseMessage>();

@@ -7,6 +7,8 @@ using ScheduleJob.Domain.Repositorys;
 using ScheduleJob.Host.Models;
 using ScheduleJob.HttpService.Interfaces;
 using ScheduleJob.HttpService.Models;
+using ScheduleJob.Domain.Interfaces;
+using ScheduleJob.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,8 +28,9 @@ namespace ScheduleJob.Host.QuartzJobs
         private readonly AuthConfig _config;
         private readonly IScheduleJobService _service;
         private readonly IJobTaskRepository _repository;
-        private readonly IJobTaskLogRepository _logRepository;
         private readonly IJobNotificationConfigRepository _notificationRepository;
+        private readonly IJobTaskManager _taskManager;
+        private readonly IJobTaskLogManager _logManager;
         private readonly ISysUmsMessageHttpService _umsHttpService;
         private readonly IHttpClientFactory _httpClientFactory;
 
@@ -35,16 +38,18 @@ namespace ScheduleJob.Host.QuartzJobs
             AuthConfig config,
             IScheduleJobService service,
             IJobTaskRepository repository,
-            IJobTaskLogRepository logRepository,
             IJobNotificationConfigRepository notificationRepository,
+            IJobTaskManager taskManager,
+            IJobTaskLogManager logManager,
             ISysUmsMessageHttpService umsHttpService,
             IHttpClientFactory httpClientFactory)
         {
             _config = config;
             _service = service;
             _repository = repository;
-            _logRepository = logRepository;
             _notificationRepository = notificationRepository;
+            _taskManager = taskManager;
+            _logManager = logManager;
             _umsHttpService = umsHttpService;
             _httpClientFactory = httpClientFactory;
         }
@@ -53,9 +58,11 @@ namespace ScheduleJob.Host.QuartzJobs
         {
             try
             {
-                var now = DateTime.UtcNow;
                 var jobs = await _repository.GetListEnabledAsync(asNoTracking: true);
                 var errorCount = 0;
+
+                // 定义北京时间时区（提到循环外避免重复创建）
+                var beijingTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
 
                 foreach (var job in jobs)
                 {
@@ -63,65 +70,62 @@ namespace ScheduleJob.Host.QuartzJobs
                     {
                         job.Status = JobTaskStatusEnum.Running;
 
-                        // 1. 定义北京时间时区
-                        var beijingTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time"); // 或 "Asia/Shanghai"
-
                         var nowUtc = DateTime.UtcNow;
                         // 将当前 UTC 时间转为北京时间，用于 Cron 计算
                         var nowBeijing = TimeZoneInfo.ConvertTimeFromUtc(nowUtc, beijingTimeZone);
 
-                        // 2. 解析 Cron（基于北京时间）
+                        // 解析 Cron（基于北京时间）
                         var crontab = Crontab.Parse(job.Cron, CronStringFormat.WithSeconds);
-                        var lastExpectedRunTimeBeijing = crontab.GetPreviousOccurrence(nowBeijing); // 返回的是 DateTime，Kind=Unspecified，但语义是北京时间
+                        var lastExpectedRunTimeBeijing = crontab.GetPreviousOccurrence(nowBeijing);
 
-                        // 3. 将“北京时间”转换为 UTC 时间（用于和日志时间比较）
+                        // 将"北京时间"转换为 UTC 时间（用于和日志时间比较）
                         var lastExpectedRunTimeUtc = TimeZoneInfo.ConvertTimeToUtc(lastExpectedRunTimeBeijing, beijingTimeZone);
 
-                        // 4. 宽限期也基于 UTC
+                        // 宽限期基于 UTC
                         var gracePeriodUtc = lastExpectedRunTimeUtc.AddMinutes(5);
 
-                        // 5. 当前 UTC 时间
+                        // 当前 UTC 时间是否已超过宽限期
                         if (nowUtc > gracePeriodUtc)
                         {
                             // 任务可能错过了执行
-                            var isAlive = await CheckForSurvivalAsync(job);
+                            var isAlive = await CheckForSurvivalAsync(job, beijingTimeZone);
                             if (!isAlive)
                             {
                                 job.Status = JobTaskStatusEnum.Error;
                                 // 注意：通知中可传北京时间，便于理解
-                                await SendNotificationAsync(job, lastExpectedRunTimeBeijing);
+                                await SendNotificationAsync(job, lastExpectedRunTimeBeijing, beijingTimeZone);
                                 errorCount++;
                                 continue;
                             }
 
-                            var latestLog = await _logRepository.GetTop1ByTaskAsync(job.AppId, job.Name);
-                            if (latestLog == null || latestLog.CreateTime < lastExpectedRunTimeUtc)
+                            // 任务存活但最后运行时间早于预期执行时间，说明任务进程在但未按时执行
+                            if (job.RunningTime < lastExpectedRunTimeUtc)
                             {
                                 job.Status = JobTaskStatusEnum.Error;
-                                await SendNotificationAsync(job, lastExpectedRunTimeBeijing);
+                                await SendNotificationAsync(job, lastExpectedRunTimeBeijing, beijingTimeZone);
                                 errorCount++;
                             }
                         }
                     }
                     catch (Exception ex)
                     {
-                        await AddLogAsync($"巡检定时任务 {job.Name} 时发生异常: {ex.Message}", true);
+                        await AddLogAsync($"巡检定时任务状态 {job.Name} 时发生异常: {ex.Message}", true);
                         job.Status = JobTaskStatusEnum.Error;
                         errorCount++;
                     }
                 }
 
                 var effected = await _repository.SaveChangesAsync();
-                await AddLogAsync($"【巡检定时任务】完成，共{jobs.Count()}个任务，发现{errorCount}个异常，数据库影响行数:{effected}");
+                await AddLogAsync($"巡检定时任务状态完成，共{jobs.Count()}个任务，发现{errorCount}个异常，数据库影响行数:{effected}");
             }
             catch (Exception ex)
             {
-                await AddLogAsync($"【严重】巡检定时任务执行失败： {ex.Message}\r\n{ex.StackTrace}", true);
+                await AddLogAsync($"巡检定时任务状态执行异常： {ex.Message}\r\n{ex.StackTrace}", true);
             }
         }
 
         // 检查定时任务是否存活（HTTP 探测）
-        private async Task<bool> CheckForSurvivalAsync(JobTask job)
+        private async Task<bool> CheckForSurvivalAsync(JobTask job, TimeZoneInfo beijingTimeZone)
         {
             try
             {
@@ -136,7 +140,23 @@ namespace ScheduleJob.Host.QuartzJobs
                 var response = await client.GetAsync(url);
 
                 var isAlive = response.StatusCode == System.Net.HttpStatusCode.OK;
-                await AddLogAsync($"主动探测任务 {job.Name} 状态：{job.NodeName} -> {(isAlive ? "运行中" : "已停止")}，最后心跳:{job.HeartbeatTime}");
+                var heartbeatBeijing = TimeZoneInfo.ConvertTimeFromUtc(job.HeartbeatTime, beijingTimeZone);
+                await AddLogAsync($"主动探测任务 {job.Name} 状态：{job.NodeName} -> {(isAlive ? "运行中" : "已停止")}，最后心跳:{heartbeatBeijing:yyyy-MM-dd HH:mm:ss}");
+
+                if (isAlive)
+                {
+                    // 更新心跳时间
+                    await _taskManager.HeartbeatAsync(job.AppId, job.Name);
+                    // 写入心跳日志
+                    await _logManager.AddAsync(new JobTaskLogForm()
+                    {
+                        AppId = job.AppId,
+                        TaskName = job.Name,
+                        Content = $"主动探测存活，运行节点【{job.NodeName}】",
+                        Type = JobTaskLogTypeEnum.Heartbeat
+                    });
+                }
+
                 return isAlive;
             }
             catch (Exception ex)
@@ -152,22 +172,37 @@ namespace ScheduleJob.Host.QuartzJobs
             await _service.AddLogAsync(_config.ClientCode, typeof(MonitorTaskStatusJob).Name, log, isException);
         }
 
-        // 发送通知（支持多种类型，当前仅企微机器人）
-        private async Task SendNotificationAsync(JobTask job, DateTime expectedRunTime)
+        // 发送通知（支持企微机器人、钉钉机器人）
+        private async Task SendNotificationAsync(JobTask job, DateTime expectedRunTimeBeijing, TimeZoneInfo beijingTimeZone)
         {
             try
             {
                 var configs = await _notificationRepository.GetListAsync();
-                var webhookUrls = configs
+
+                // 企业微信机器人
+                var wxWebhookUrls = configs
                     .Where(c => c.NotificationType == JobNotificationTypeEnum.WxQtRoot)
                     .SelectMany(c => c.TargetJson.FromJson<List<string>>())
                     .Where(url => !string.IsNullOrWhiteSpace(url))
                     .Distinct()
                     .ToList();
 
-                if (!webhookUrls.Any()) return;
+                if (wxWebhookUrls.Any())
+                {
+                    await SendToWechatQyRobotAsync(job, wxWebhookUrls, expectedRunTimeBeijing, beijingTimeZone);
+                }
 
-                await SendToWechatQyRobotAsync(job, webhookUrls, expectedRunTime);
+                // 钉钉机器人
+                var dingTalkTargets = configs
+                    .Where(c => c.NotificationType == JobNotificationTypeEnum.DingTalkRobot)
+                    .SelectMany(c => c.TargetJson.FromJson<List<DingTalkRobotTarget>>())
+                    .Where(t => t != null && !string.IsNullOrWhiteSpace(t.WebhookUrl))
+                    .ToList();
+
+                if (dingTalkTargets.Any())
+                {
+                    await SendToDingTalkRobotAsync(job, dingTalkTargets, expectedRunTimeBeijing, beijingTimeZone);
+                }
             }
             catch (Exception ex)
             {
@@ -176,16 +211,19 @@ namespace ScheduleJob.Host.QuartzJobs
         }
 
         // 发送企业微信机器人消息（Markdown）
-        private async Task SendToWechatQyRobotAsync(JobTask job, List<string> webhookUrls, DateTime expectedRunTime)
+        private async Task SendToWechatQyRobotAsync(JobTask job, List<string> webhookUrls, DateTime expectedRunTimeBeijing, TimeZoneInfo beijingTimeZone)
         {
+            var heartbeatBeijing = TimeZoneInfo.ConvertTimeFromUtc(job.HeartbeatTime, beijingTimeZone);
+            var nowBeijing = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, beijingTimeZone);
+
             var sb = new StringBuilder();
             sb.AppendLine("## <font color=\"red\">⚠️ 定时任务异常告警</font>  ");
             sb.AppendLine($"**名称**：{job.Name}  ");
             sb.AppendLine($"**运行节点**：{job.NodeName}  ");
             sb.AppendLine($"**节点IP**：{job.IpAddress}  ");
-            sb.AppendLine($"**预期执行时间**：{expectedRunTime:yyyy-MM-dd HH:mm:ss}  ");
-            sb.AppendLine($"**最后心跳时间**：{job.HeartbeatTime:yyyy-MM-dd HH:mm:ss}  ");
-            sb.AppendLine($"**告警时间**：{DateTime.Now:yyyy-MM-dd HH:mm:ss}  ");
+            sb.AppendLine($"**预期执行时间**：{expectedRunTimeBeijing:yyyy-MM-dd HH:mm:ss}  ");
+            sb.AppendLine($"**最后心跳时间**：{heartbeatBeijing:yyyy-MM-dd HH:mm:ss}  ");
+            sb.AppendLine($"**告警时间**：{nowBeijing:yyyy-MM-dd HH:mm:ss}  ");
 
             // 使用 Task.WhenAll 确保所有通知都完成
             await Task.WhenAll(webhookUrls.Select(async webhookUrl =>
@@ -201,6 +239,41 @@ namespace ScheduleJob.Host.QuartzJobs
                 catch (Exception ex)
                 {
                     await AddLogAsync($"发送企微机器人消息失败({webhookUrl})：{ex.Message}", true);
+                }
+            }));
+        }
+
+        // 发送钉钉机器人消息（Markdown）
+        private async Task SendToDingTalkRobotAsync(JobTask job, List<DingTalkRobotTarget> targets, DateTime expectedRunTimeBeijing, TimeZoneInfo beijingTimeZone)
+        {
+            var heartbeatBeijing = TimeZoneInfo.ConvertTimeFromUtc(job.HeartbeatTime, beijingTimeZone);
+            var nowBeijing = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, beijingTimeZone);
+
+            var sb = new StringBuilder();
+            sb.AppendLine("## 定时任务异常告警  ");
+            sb.AppendLine($"**名称**：{job.Name}  ");
+            sb.AppendLine($"**运行节点**：{job.NodeName}  ");
+            sb.AppendLine($"**节点IP**：{job.IpAddress}  ");
+            sb.AppendLine($"**预期执行时间**：{expectedRunTimeBeijing:yyyy-MM-dd HH:mm:ss}  ");
+            sb.AppendLine($"**最后心跳时间**：{heartbeatBeijing:yyyy-MM-dd HH:mm:ss}  ");
+            sb.AppendLine($"**告警时间**：{nowBeijing:yyyy-MM-dd HH:mm:ss}  ");
+
+            await Task.WhenAll(targets.Select(async target =>
+            {
+                try
+                {
+                    await _umsHttpService.SendToDingTalkMarkdownAsync(new UmsDingTalkRobotMessageRequest
+                    {
+                        WebhookUrl = target.WebhookUrl,
+                        Sign = target.Sign,
+                        Title = "定时任务异常告警",
+                        Content = sb.ToString(),
+                        IsAtAll = false
+                    });
+                }
+                catch (Exception ex)
+                {
+                    await AddLogAsync($"发送钉钉机器人消息失败({target.WebhookUrl})：{ex.Message}", true);
                 }
             }));
         }
