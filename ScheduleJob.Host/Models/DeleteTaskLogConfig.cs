@@ -19,5 +19,10 @@ namespace ScheduleJob.Host.Models
         /// 错误日志保留天数
         /// </summary>
         public int ErrorDays { get; set; } = 15;
+
+        /// <summary>
+        /// 批量删除时每批处理的记录数（默认500条）
+        /// </summary>
+        public int BatchSize { get; set; } = 500;
     }
 }

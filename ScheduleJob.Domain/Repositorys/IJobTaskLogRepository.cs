@@ -43,5 +43,13 @@ namespace ScheduleJob.Domain.Repositorys
         /// </summary>
         /// <returns>列表</returns>
         Task<JobTaskLog> GetTop1ByTaskAsync(string appId, string taskName);
+
+        /// <summary>
+        /// 分批查询日志（用于批量删除）
+        /// </summary>
+        /// <param name="predicate">查询条件</param>
+        /// <param name="take">每次获取数量</param>
+        /// <returns>列表</returns>
+        Task<IEnumerable<JobTaskLog>> GetListWithTakeAsync(System.Linq.Expressions.Expression<Func<JobTaskLog, bool>> predicate, int take);
     }
 }

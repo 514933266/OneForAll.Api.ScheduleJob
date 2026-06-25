@@ -92,11 +92,15 @@ namespace ScheduleJob.HttpService
         /// <returns结果</returns>
         public async Task<BaseMessage> StopAsync(string url, string taskName)
         {
-            var client = new HttpClient();
-            url = $"{url}/api/Startups/Default/Jobs/{taskName}/Stop";
-            var response = await client.PostAsync(url, null);
-            var msg = await response.Content.ReadAsAsync<BaseMessage>();
-            return msg;
+            using (var client = new HttpClient())
+            {
+                url = $"{url}/api/Startups/Default/Jobs/{taskName}/Stop";
+                using (var response = await client.PostAsync(url, null))
+                {
+                    var msg = await response.Content.ReadAsAsync<BaseMessage>();
+                    return msg;
+                }
+            }
         }
 
         /// <summary>
@@ -106,11 +110,15 @@ namespace ScheduleJob.HttpService
         /// <returns结果</returns>
         public async Task<BaseMessage> ResumeAsync(string url, string taskName)
         {
-            var client = new HttpClient();
-            url = $"{url}/api/Startups/Default/Jobs/{taskName}/Resume";
-            var response = await client.PostAsync(url, null);
-            var msg = await response.Content.ReadAsAsync<BaseMessage>();
-            return msg;
+            using (var client = new HttpClient())
+            {
+                url = $"{url}/api/Startups/Default/Jobs/{taskName}/Resume";
+                using (var response = await client.PostAsync(url, null))
+                {
+                    var msg = await response.Content.ReadAsAsync<BaseMessage>();
+                    return msg;
+                }
+            }
         }
 
         /// <summary>
@@ -120,11 +128,15 @@ namespace ScheduleJob.HttpService
         /// <returns结果</returns>
         public async Task<BaseMessage> ExcuteAsync(string url, string taskName)
         {
-            var client = new HttpClient();
-            url = $"{url}/api/Startups/Default/Jobs/{taskName}/Excute";
-            var response = await client.PostAsync(url, null);
-            var msg = await response.Content.ReadAsAsync<BaseMessage>();
-            return msg;
+            using (var client = new HttpClient())
+            {
+                url = $"{url}/api/Startups/Default/Jobs/{taskName}/Excute";
+                using (var response = await client.PostAsync(url, null))
+                {
+                    var msg = await response.Content.ReadAsAsync<BaseMessage>();
+                    return msg;
+                }
+            }
         }
     }
 }

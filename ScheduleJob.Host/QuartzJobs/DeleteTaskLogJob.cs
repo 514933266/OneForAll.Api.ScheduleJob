@@ -15,7 +15,7 @@ namespace ScheduleJob.Host.QuartzJobs
     /// 定时任务日志清理
     /// </summary>
     [DisallowConcurrentExecution]
-    public class DeleteTaskLogJob : IJob
+    public class DeleteTaskLogJob : BaseLockJob
     {
         private readonly AuthConfig _config;
         private readonly IScheduleJobService _service;
@@ -23,15 +23,18 @@ namespace ScheduleJob.Host.QuartzJobs
         public DeleteTaskLogJob(
             AuthConfig config,
             IScheduleJobService service,
+            IJobRunningLockRepository lockRepository,
+            IJobLockHolderRepository holderRepository,
             IJobTaskLogManager logManager,
             IJobTaskLogRepository repository)
+            : base(config, service, lockRepository, holderRepository)
         {
             _config = config;
             _service = service;
             _repository = repository;
         }
 
-        public async Task Execute(IJobExecutionContext context)
+        protected override async Task ExecuteInternalAsync(IJobExecutionContext context)
         {
             int deletedHeartbeats = 0, deletedRuns = 0, deletedErrors = 0;
             var utcToday = DateTime.UtcNow.Date;
@@ -39,44 +42,61 @@ namespace ScheduleJob.Host.QuartzJobs
             // 从 JobDataMap 中读取配置，未配置则使用默认值
             var logConfig = GetLogConfig(context);
 
-            try
+            // 删除心跳/注册/上线/下线日志（分批处理）
+            var cutoffHeartbeat = utcToday.AddDays(-logConfig.HeartbeatDays);
+            int batchSize = logConfig.BatchSize > 0 ? logConfig.BatchSize : 500; // 防止配置为0或负数
+
+            while (true)
             {
-                // 删除心跳/注册/上线/下线日志
-                var cutoffHeartbeat = utcToday.AddDays(-logConfig.HeartbeatDays);
-                var heartbeats = await _repository.GetListAsync(w => w.Type != JobTaskLogTypeEnum.Running && w.Type != JobTaskLogTypeEnum.Error && w.CreateTime < cutoffHeartbeat);
+                var heartbeats = await _repository.GetListWithTakeAsync(
+                    w => w.Type != JobTaskLogTypeEnum.Running &&
+                         w.Type != JobTaskLogTypeEnum.Error &&
+                         w.CreateTime < cutoffHeartbeat,
+                    batchSize);
 
-                if (heartbeats.Any())
-                {
-                    deletedHeartbeats = await _repository.BulkDeleteAsync(heartbeats.ToList());
-                    await AddLogAsync($"删除{logConfig.HeartbeatDays}天前心跳类日志完成，共 {deletedHeartbeats} 条");
-                }
+                if (!heartbeats.Any())
+                    break;
 
-                // 删除运行日志
-                var cutoffRun = utcToday.AddDays(-logConfig.RunningDays);
-                var runs = await _repository.GetListAsync(w => w.Type == JobTaskLogTypeEnum.Running && w.CreateTime < cutoffRun);
-
-                if (runs.Any())
-                {
-                    deletedRuns = await _repository.BulkDeleteAsync(runs.ToList());
-                    await AddLogAsync($"删除{logConfig.RunningDays}天前运行日志完成，共 {deletedRuns} 条");
-                }
-
-                // 删除错误日志
-                var cutoffError = utcToday.AddDays(-logConfig.ErrorDays);
-                var errors = await _repository.GetListAsync(w => w.Type == JobTaskLogTypeEnum.Error && w.CreateTime < cutoffError);
-
-                if (errors.Any())
-                {
-                    deletedErrors = await _repository.BulkDeleteAsync(errors.ToList());
-                    await AddLogAsync($"删除{logConfig.ErrorDays}天前错误日志完成，共 {deletedErrors} 条");
-                }
-
-                await AddLogAsync($"【日志清理完成】配置(心跳:{logConfig.HeartbeatDays}天/运行:{logConfig.RunningDays}天/错误:{logConfig.ErrorDays}天)，共删除：心跳类 {deletedHeartbeats} 条，运行日志 {deletedRuns} 条，错误日志 {deletedErrors} 条。");
+                var count = await _repository.BulkDeleteAsync(heartbeats.ToList());
+                deletedHeartbeats += count;
+                await AddLogAsync($"分批删除{logConfig.HeartbeatDays}天前心跳类日志，本批 {count} 条，累计 {deletedHeartbeats} 条");
             }
-            catch (Exception ex)
+
+            // 删除运行日志（分批处理）
+            var cutoffRun = utcToday.AddDays(-logConfig.RunningDays);
+
+            while (true)
             {
-                await AddLogAsync($"【严重】日志清理任务执行失败：{ex.Message}\n{ex.StackTrace}", true);
+                var runs = await _repository.GetListWithTakeAsync(
+                    w => w.Type == JobTaskLogTypeEnum.Running && w.CreateTime < cutoffRun,
+                    batchSize);
+
+                if (!runs.Any())
+                    break;
+
+                var count = await _repository.BulkDeleteAsync(runs.ToList());
+                deletedRuns += count;
+                await AddLogAsync($"分批删除{logConfig.RunningDays}天前运行日志，本批 {count} 条，累计 {deletedRuns} 条");
             }
+
+            // 删除错误日志（分批处理）
+            var cutoffError = utcToday.AddDays(-logConfig.ErrorDays);
+
+            while (true)
+            {
+                var errors = await _repository.GetListWithTakeAsync(
+                    w => w.Type == JobTaskLogTypeEnum.Error && w.CreateTime < cutoffError,
+                    batchSize);
+
+                if (!errors.Any())
+                    break;
+
+                var count = await _repository.BulkDeleteAsync(errors.ToList());
+                deletedErrors += count;
+                await AddLogAsync($"分批删除{logConfig.ErrorDays}天前错误日志，本批 {count} 条，累计 {deletedErrors} 条");
+            }
+
+            await AddLogAsync($"【日志清理完成】配置(心跳:{logConfig.HeartbeatDays}天/运行:{logConfig.RunningDays}天/错误:{logConfig.ErrorDays}天/批次:{batchSize}条)，共删除：心跳类 {deletedHeartbeats} 条，运行日志 {deletedRuns} 条，错误日志 {deletedErrors} 条。");
         }
 
         /// <summary>

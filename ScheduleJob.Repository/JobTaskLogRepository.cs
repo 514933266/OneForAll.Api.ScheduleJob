@@ -80,5 +80,20 @@ namespace ScheduleJob.Repository
         {
             return await DbSet.Where(w => w.AppId == appId && w.TaskName == taskName).OrderByDescending(o => o.CreateTime).FirstOrDefaultAsync();
         }
+
+        /// <summary>
+        /// 分批查询日志（用于批量删除）
+        /// </summary>
+        /// <param name="predicate">查询条件</param>
+        /// <param name="take">每次获取数量</param>
+        /// <returns>列表</returns>
+        public async Task<IEnumerable<JobTaskLog>> GetListWithTakeAsync(System.Linq.Expressions.Expression<Func<JobTaskLog, bool>> predicate, int take)
+        {
+            return await DbSet
+                .Where(predicate)
+                .OrderBy(o => o.CreateTime)
+                .Take(take)
+                .ToListAsync();
+        }
     }
 }

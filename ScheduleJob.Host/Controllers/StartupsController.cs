@@ -24,9 +24,9 @@ namespace ScheduleJob.Host.Controllers
 
         [HttpGet]
         [AllowAnonymous]
-        public string Get()
+        public bool Get()
         {
-            return "项目启动成功!";
+            return true;
         }
 
         /// <summary>
