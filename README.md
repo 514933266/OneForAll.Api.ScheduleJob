@@ -53,6 +53,64 @@ OneForAll.Api.ScheduleJob/
 | DeleteTaskLogJob | 每天 | 清理过期日志（心跳日志 1 天、运行日志 7 天、异常日志 15 天） |
 | MonitorTaskStatusJob | 每 5 分钟 | 监控任务健康状态，检测失联节点并发送告警通知 |
 
+### 并发控制机制
+
+所有内置定时任务继承自 `BaseLockJob` 基类，基类自动处理分布式环境下的并发控制，防止同一任务在多个实例上同时执行。
+
+#### 核心设计
+
+采用**双表 + 数据库锁 + 乐观锁**三层防护机制：
+
+| 表名 | 作用 |
+|------|------|
+| `job_running_lock` | 锁配置与运行状态（最大并发数、当前运行数、版本号） |
+| `job_lock_holder` | 锁持有者记录（利用唯一索引 `(ClientId, TaskName, Version)` 防止重复获取） |
+
+#### 执行流程
+
+```
+获取锁 → 执行业务逻辑 → 释放锁
+  │                        │
+  └── 失败则跳过本次执行    └── 减少计数 + 删除持有者记录
+```
+
+**1. 获取锁（TryAcquireLockAsync）**
+
+- 使用 SQL Server `WITH (UPDLOCK, ROWLOCK)` 排他行锁查询锁配置，防止多个事务同时读取
+- 若锁配置不存在，自动创建默认配置（允许 1 个并发）
+- 若 `IsEnabled = false`，跳过并发控制，直接允许执行
+- 若 `CurrentRunningCount >= MaxConcurrent`，返回失败，跳过本次执行
+- 事务内执行两步原子操作：
+  - **INSERT** `job_lock_holder` —— 利用唯一索引作为真正的分布式锁，极限并发下只有一个实例能插入成功
+  - **UPDATE** `job_running_lock`（带 `WHERE Version = @originalVersion` 条件）—— 乐观锁作为二次校验
+
+**2. 执行（ExecuteInternalAsync）**
+
+- 子类必须实现的抽象方法，编写具体业务逻辑
+- 若执行中抛出异常，自动记录异常日志
+
+**3. 释放锁（ReleaseLockAsync + RemoveLockHolderAsync）**
+
+- `finally` 块中确保锁一定被释放
+- 减少 `CurrentRunningCount` 计数（无需乐观锁，因为只有持有者会操作）
+- 删除对应的 `job_lock_holder` 记录
+
+#### 并发竞争示意
+
+```
+实例A: SELECT(V=5) → INSERT Holder ✓ → UPDATE WHERE V=5 ✓ → 获取成功
+实例B: SELECT(V=5) → INSERT Holder ✗（唯一约束冲突）        → 获取失败
+```
+
+#### 关键字段说明
+
+| 字段 | 说明 |
+|------|------|
+| `MaxConcurrent` | 最大并发数，默认 1（同一时刻最多 1 个实例执行） |
+| `CurrentRunningCount` | 当前正在运行的实例数 |
+| `Version` | 乐观锁版本号，每次成功获取锁时递增 |
+| `IsEnabled` | 是否启用并发控制，设为 false 可跳过锁检查 |
+
 ### 监控与告警
 
 - 基于心跳检测节点存活状态
@@ -93,6 +151,8 @@ OneForAll.Api.ScheduleJob/
 | job_task_log | 执行日志（类型：注册/上线/下线/运行/心跳/异常） |
 | job_notification_config | 告警通知配置（企业微信/钉钉 Webhook） |
 | job_mid_task_person | 任务负责人关联 |
+| job_running_lock | 定时任务运行锁（并发控制配置与计数） |
+| job_lock_holder | 锁持有者记录（唯一索引防重复获取） |
 
 ## 配置说明
 

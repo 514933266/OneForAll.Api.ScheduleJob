@@ -1,9 +1,8 @@
-using Microsoft.EntityFrameworkCore;
 using Quartz;
 using ScheduleJob.Application.Interfaces;
 using ScheduleJob.Domain.Entities;
 using ScheduleJob.Domain.Repositorys;
-using ScheduleJob.Host.Models;
+using ScheduleJob.Public.Models;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -39,9 +38,10 @@ namespace ScheduleJob.Host.QuartzJobs
         {
             var taskName = GetTaskName();
             var clientId = _authConfig?.ClientId ?? "未配置ClientId";
+            var clientCode = _authConfig?.ClientCode ?? "未配置ClientCode";
 
             // 尝试获取执行权限（业务逻辑实现在基类）
-            var (canExecute, version) = await TryAcquireLockAsync(clientId, taskName);
+            var (canExecute, version) = await TryAcquireLockAsync(clientId, clientCode, taskName);
 
             if (!canExecute)
             {
@@ -52,9 +52,6 @@ namespace ScheduleJob.Host.QuartzJobs
 
             try
             {
-                // 记录当前锁持有者
-                await RecordLockHolderAsync(clientId, taskName, version);
-
                 // 执行实际业务逻辑
                 await ExecuteInternalAsync(context);
             }
@@ -65,6 +62,9 @@ namespace ScheduleJob.Host.QuartzJobs
             }
             finally
             {
+                // 延迟3秒后再释放锁，防止任务刚执行完立即再次触发
+                await Task.Delay(3000);
+
                 // 确保释放锁
                 var canRemove = await ReleaseLockAsync(clientId, taskName, version);
                 if (canRemove)
@@ -91,45 +91,48 @@ namespace ScheduleJob.Host.QuartzJobs
         /// <summary>
         /// 尝试获取执行权限
         /// </summary>
-        /// <param name="clientId"></param>
-        /// <param name="taskName"></param>
+        /// <param name="clientId">客户端Id</param>
+        /// <param name="clientCode">客户端编号</param>
+        /// <param name="taskName">定时任务名称</param>
         /// <returns></returns>
-        private async Task<(bool, int)> TryAcquireLockAsync(string clientId, string taskName)
+        private async Task<(bool, int)> TryAcquireLockAsync(string clientId, string clientCode, string taskName)
         {
             var currentVersion = 0;
-            var lockEntity = await _lockRepository.GetAsync(clientId, taskName, asNoTracking: true);
-
-            // 如果不存在锁配置，创建默认配置（允许1个并发）
-            if (lockEntity == null)
-            {
-                lockEntity = new JobRunningLock
-                {
-                    IsEnabled = true,
-                    TaskName = taskName,
-                    ClientId = clientId,
-                    Version = 0,
-                    MaxConcurrent = 1,
-                    CurrentRunningCount = 1,
-                    CreateTime = DateTime.UtcNow,
-                    UpdateTime = DateTime.UtcNow
-                };
-
-                var effected = _lockRepository.Add(lockEntity);
-                return (effected > 0, 0);
-            }
-
-            currentVersion = lockEntity.Version + 1;
-            // 如果未启用并发控制，直接允许执行
-            if (!lockEntity.IsEnabled)
-                return (true, currentVersion);
-
-            // 检查是否达到最大并发数
-            if (lockEntity.CurrentRunningCount >= lockEntity.MaxConcurrent)
-                return (false, currentVersion);
-
             try
             {
-                var isSuccess = await _lockRepository.UpdateLockCountAsync(lockEntity.Id, (lockEntity.CurrentRunningCount + 1), "已锁定", currentVersion, lockEntity.Version);
+                var lockEntity = await _lockRepository.GetAsync(clientId, taskName, asNoTracking: true);
+
+                // 如果不存在锁配置，创建默认配置（允许1个并发）
+                if (lockEntity == null)
+                {
+                    lockEntity = new JobRunningLock
+                    {
+                        IsEnabled = true,
+                        TaskName = taskName,
+                        ClientId = clientId,
+                        Version = 0,
+                        MaxConcurrent = 1,
+                        CurrentRunningCount = 0,
+                        CreateTime = DateTime.UtcNow,
+                        UpdateTime = DateTime.UtcNow
+                    };
+
+                    var effected = _lockRepository.Add(lockEntity);
+                }
+
+                currentVersion = lockEntity.Version + 1;
+                // 如果未启用并发控制，直接允许执行
+                if (!lockEntity.IsEnabled)
+                    return (true, currentVersion);
+
+                // 检查是否达到最大并发数
+                if (lockEntity.CurrentRunningCount >= lockEntity.MaxConcurrent)
+                    return (false, currentVersion);
+
+                // 事务内：INSERT Holder（利用唯一索引作为锁）+ UPDATE 计数（乐观锁二次校验）
+                var isSuccess = await _lockRepository.TryAcquireWithHolderAsync(
+                    lockEntity.Id, clientId, clientCode, taskName, lockEntity.Version, currentVersion);
+
                 return (isSuccess, currentVersion);
             }
             catch
@@ -146,10 +149,9 @@ namespace ScheduleJob.Host.QuartzJobs
         {
             var lockEntity = await _lockRepository.GetAsync(clientId, taskName, asNoTracking: true);
 
-            if (lockEntity != null)
+            if (lockEntity != null && lockEntity.CurrentRunningCount >= 1)
             {
-                // 使用原始SQL更新，避免EF Core追踪实体，减少并发冲突
-                return await _lockRepository.UpdateLockCountAsync(lockEntity.Id, (lockEntity.CurrentRunningCount - 1), "已释放", version, version);
+                return await _lockRepository.DecrementRunningCountAsync(lockEntity.Id);
             }
 
             return true;
@@ -200,24 +202,6 @@ namespace ScheduleJob.Host.QuartzJobs
                     log,
                     isException);
             }
-        }
-
-        /// <summary>
-        /// 记录当前锁持有者
-        /// </summary>
-        private async Task RecordLockHolderAsync(string clientId, string taskName, int version)
-        {
-            // 插入新记录
-            var holder = new JobLockHolder
-            {
-                ClientId = clientId,
-                TaskName = taskName,
-                Version = version,
-                LockTime = DateTime.UtcNow,
-                Remark = "持有锁"
-            };
-
-            await _holderRepository.AddAsync(holder);
         }
 
         /// <summary>

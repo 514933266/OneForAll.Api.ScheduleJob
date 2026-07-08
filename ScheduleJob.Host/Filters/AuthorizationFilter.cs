@@ -10,8 +10,7 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using OneForAll.Core;
 using OneForAll.Core.Extension;
 using ScheduleJob.HttpService.Interfaces;
-using ScheduleJob.Host.Models;
-using OneForAll.Core.Security;
+using ScheduleJob.Public.Models;
 
 namespace ScheduleJob.Host.Filters
 {

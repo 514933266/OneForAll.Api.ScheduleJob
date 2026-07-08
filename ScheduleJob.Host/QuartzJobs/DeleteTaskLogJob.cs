@@ -5,6 +5,7 @@ using ScheduleJob.Domain.Enums;
 using ScheduleJob.Domain.Interfaces;
 using ScheduleJob.Domain.Repositorys;
 using ScheduleJob.Host.Models;
+using ScheduleJob.Public.Models;
 using System;
 using System.Linq;
 using System.Threading.Tasks;

@@ -4,6 +4,7 @@ using System;
 using ScheduleJob.Host.Models;
 using ScheduleJob.HttpService.Interfaces;
 using ScheduleJob.HttpService.Models;
+using ScheduleJob.Public.Models;
 
 namespace ScheduleJob.Host.Filters
 {

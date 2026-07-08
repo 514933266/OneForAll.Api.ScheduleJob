@@ -17,4 +17,8 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ScheduleJob.Public\ScheduleJob.Public.csproj" />
+  </ItemGroup>
+
 </Project>

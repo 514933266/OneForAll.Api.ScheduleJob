@@ -54,7 +54,7 @@ namespace ScheduleJob.Host
             modelBuilder.Entity<JobLockHolder>(entity =>
             {
                 entity.ToTable("job_lock_holder");
-                entity.HasIndex(e => new { e.ClientId, e.TaskName }).IsUnique();
+                entity.HasIndex(e => new { e.ClientId, e.TaskName, e.Version }).IsUnique();
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
             });
         }

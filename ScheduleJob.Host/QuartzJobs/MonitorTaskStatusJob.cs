@@ -17,6 +17,7 @@ using System.Text;
 using System.Threading.Tasks;
 using TimeCrontab;
 using ScheduleJob.Domain.ValueObjects;
+using ScheduleJob.Public.Models;
 
 namespace ScheduleJob.Host.QuartzJobs
 {

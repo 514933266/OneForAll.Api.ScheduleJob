@@ -40,6 +40,7 @@ namespace ScheduleJob.Host
 
         private const string HTTP_SERVICE = "ScheduleJob.HttpService";
         private const string HTTP_SERVICE_KEY = "HttpService";
+        private const string HTTP_SERVICELOG_KEY = "HttpServiceLog";
 
         private const string BASE_HOST = "ScheduleJob.Host";
         private const string BASE_DOMAIN = "ScheduleJob.Domain";
@@ -110,6 +111,8 @@ namespace ScheduleJob.Host
 
             // 读取 HTTP 客户端相关配置
             var serviceConfig = Configuration.GetSection(HTTP_SERVICE_KEY).Get<HttpServiceConfig>();
+            // 读取 HTTP 客户端相关配置
+            var serviceLogConfig = Configuration.GetSection(HTTP_SERVICELOG_KEY).Get<HttpServiceLogConfig>();
             // 使用反射获取配置类的所有属性
             var props = OneForAll.Core.Utility.ReflectionHelper.GetPropertys(serviceConfig);
             props.ForEach(e =>
@@ -131,6 +134,8 @@ namespace ScheduleJob.Host
             // 将 HttpServiceConfig 作为单例注入，供后续使用
             services.AddSingleton<HttpServiceConfig>();
 
+            // 将 HttpServiceLogConfig 作为单例注入，供后续使用
+            services.AddSingleton(serviceLogConfig);
             #endregion
 
             #region AutoMapper

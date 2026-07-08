@@ -64,12 +64,5 @@ namespace ScheduleJob.Domain.Entities
         [Required]
         [Column(TypeName = "datetime")]
         public DateTime UpdateTime { get; set; } = DateTime.UtcNow;
-
-        /// <summary>
-        /// 备注
-        /// </summary>
-        [Required]
-        [StringLength(500)]
-        public string Remark { get; set; } = "";
     }
 }

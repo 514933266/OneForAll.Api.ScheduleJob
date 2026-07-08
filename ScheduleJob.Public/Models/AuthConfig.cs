@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
-namespace ScheduleJob.Host.Models
+namespace ScheduleJob.Public.Models
 {
     /// <summary>
     /// OAuth授权配置

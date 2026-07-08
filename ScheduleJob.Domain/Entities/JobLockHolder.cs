@@ -31,6 +31,13 @@ namespace ScheduleJob.Domain.Entities
         public string ClientId { get; set; }
 
         /// <summary>
+        /// 客户端编号（相同客户端ID可能编号不同）
+        /// </summary>
+        [Required]
+        [StringLength(100)]
+        public string ClientCode { get; set; }
+
+        /// <summary>
         /// 锁版本号
         /// </summary>
         [Required]
@@ -41,13 +48,6 @@ namespace ScheduleJob.Domain.Entities
         /// </summary>
         [Required]
         [Column(TypeName = "datetime")]
-        public DateTime LockTime { get; set; }
-
-        /// <summary>
-        /// 备注
-        /// </summary>
-        [Required]
-        [StringLength(500)]
-        public string Remark { get; set; }
+        public DateTime LockTime { get; set; } = DateTime.UtcNow;
     }
 }
