@@ -100,7 +100,7 @@ namespace ScheduleJob.Host.QuartzJobs
             var currentVersion = 0;
             try
             {
-                var lockEntity = await _lockRepository.GetAsync(clientId, taskName, asNoTracking: true);
+                var lockEntity = await _lockRepository.GetWithLockAsync(clientId, taskName, asNoTracking: true);
 
                 // 如果不存在锁配置，创建默认配置（允许1个并发）
                 if (lockEntity == null)

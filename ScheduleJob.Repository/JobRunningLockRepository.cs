@@ -110,16 +110,16 @@ namespace ScheduleJob.Repository
             {
                 // 1. INSERT Holder 记录 —— 利用唯一索引作为真正的锁
                 // 并发场景下，相同 (ClientId, TaskName, Version) 只有一个能插入成功
-                var affected = await Context.Database.ExecuteSqlRawAsync(
+                await Context.Database.ExecuteSqlRawAsync(
                     "INSERT INTO job_lock_holder (Id, ClientId, ClientCode, TaskName, Version, LockTime) VALUES ({0}, {1}, {2}, {3}, {4}, {5})",
                     Guid.NewGuid(), clientId, clientCode, taskName, newVersion, DateTime.UtcNow);
 
                 // 2. UPDATE 运行计数 —— 乐观锁作为二次校验
-                var affected2 = await Context.Database.ExecuteSqlRawAsync(
+                var affected = await Context.Database.ExecuteSqlRawAsync(
                     "UPDATE job_running_lock SET CurrentRunningCount = CurrentRunningCount + 1, Version = {0}, UpdateTime = {1} WHERE Id = {2} AND Version = {3}",
                     newVersion, DateTime.UtcNow, lockId, originalVersion);
 
-                if (affected == 0 || affected2 == 0)
+                if (affected == 0)
                 {
                     // 乐观锁冲突：Holder 已插入但 RunningLock 校验失败，回滚全部
                     await transaction.RollbackAsync();
