@@ -6,8 +6,6 @@ using ScheduleJob.Application.Dtos;
 using System.Threading.Tasks;
 using ScheduleJob.Application.Interfaces;
 using System.Collections.Generic;
-using ScheduleJob.Host.Filters;
-using OneForAll.Core.OAuth;
 using ScheduleJob.Domain.Enums;
 
 namespace ScheduleJob.Host.Controllers
@@ -16,7 +14,7 @@ namespace ScheduleJob.Host.Controllers
     /// 定时任务
     /// </summary>
     [Route("api/[controller]")]
-    [Authorize(Roles = UserRoleType.Ruler)]
+    [AllowAnonymous]
     public class JobTasksController : BaseController
     {
         private readonly IJobTaskService _service;
@@ -37,7 +35,6 @@ namespace ScheduleJob.Host.Controllers
         /// <returns>权限列表</returns>
         [HttpGet]
         [Route("{pageIndex}/{pageSize}")]
-        [CheckPermission(Action = ConstPermission.EnterView)]
         public async Task<PageList<JobTaskDto>> GetPageAsync(
             int pageIndex,
             int pageSize,
@@ -55,7 +52,6 @@ namespace ScheduleJob.Host.Controllers
         /// <returns></returns>
         [HttpPatch]
         [Route("{id}/IsEnabled")]
-        [CheckPermission(Action = ConstPermission.EnterView)]
         public async Task<BaseMessage> SetIsEnabledAsync(Guid id)
         {
             var msg = new BaseMessage();
@@ -76,7 +72,6 @@ namespace ScheduleJob.Host.Controllers
         /// <returns></returns>
         [HttpPatch]
         [Route("Batch/IsDeleted")]
-        [CheckPermission(Action = ConstPermission.EnterView)]
         public async Task<BaseMessage> DeleteAsync([FromBody] IEnumerable<Guid> ids)
         {
             var msg = new BaseMessage();

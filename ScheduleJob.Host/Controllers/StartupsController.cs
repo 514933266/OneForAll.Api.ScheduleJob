@@ -5,12 +5,11 @@ using Quartz;
 using System.Reflection;
 using OneForAll.Core;
 using Microsoft.AspNetCore.Authorization;
-using OneForAll.Core.OAuth;
 
 namespace ScheduleJob.Host.Controllers
 {
     [Route("api/[controller]")]
-    [Authorize(Roles = UserRoleType.Ruler)]
+    [AllowAnonymous]
     public class StartupsController : Controller
     {
         private readonly string _assemblyName;
@@ -63,7 +62,7 @@ namespace ScheduleJob.Host.Controllers
             var job = scheduler.GetJobDetail(jobKey);
             if (job.Result == null)
                 return msg.Fail("不存在该定时任务");
-            await scheduler.PauseJob(jobKey);
+            await scheduler.ResumeJob(jobKey);
             return msg.Success("启动成功");
         }
 

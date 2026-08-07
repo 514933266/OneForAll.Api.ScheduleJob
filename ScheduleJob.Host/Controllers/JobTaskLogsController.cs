@@ -5,10 +5,8 @@ using OneForAll.Core;
 using ScheduleJob.Application.Dtos;
 using System.Threading.Tasks;
 using ScheduleJob.Application.Interfaces;
-using ScheduleJob.Host.Filters;
 using Autofac.Core;
 using ScheduleJob.Domain.Enums;
-using OneForAll.Core.OAuth;
 
 namespace ScheduleJob.Host.Controllers
 {
@@ -16,7 +14,7 @@ namespace ScheduleJob.Host.Controllers
     /// 定时任务日志
     /// </summary>
     [Route("api/[controller]")]
-    [Authorize(Roles = UserRoleType.Ruler)]
+    [AllowAnonymous]
     public class JobTaskLogsController : BaseController
     {
         private readonly IJobTaskLogService _service;
@@ -40,7 +38,6 @@ namespace ScheduleJob.Host.Controllers
         /// <returns>权限列表</returns>
         [HttpGet]
         [Route("{pageIndex}/{pageSize}")]
-        [CheckPermission(Action = ConstPermission.EnterView)]
         public async Task<PageList<JobTaskLogDto>> GetPageAsync(
             int pageIndex,
             int pageSize,

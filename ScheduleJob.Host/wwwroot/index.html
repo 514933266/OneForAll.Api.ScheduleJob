@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>定时任务调度中心</title>
+  <link rel="stylesheet" href="/lib/element-plus.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #app { height: 100%; }
+    body { font-family: "Helvetica Neue", Helvetica, "PingFang SC", "Microsoft YaHei", Arial, sans-serif; background: #f0f2f5; }
+    .layout { height: 100%; }
+    .aside { background: #2f2f2f; }
+    .logo { height: 56px; line-height: 56px; text-align: center; color: #fff; font-size: 16px; font-weight: 600; background: #262626; white-space: nowrap; overflow: hidden; }
+    .aside .el-menu { border-right: none; --el-menu-hover-bg-color: #3a3a3a; --el-menu-active-color: #ffffff; }
+    .aside .el-menu-item.is-active { background-color: #1f1f1f !important; }
+    .aside .el-menu-item:hover { background-color: #3a3a3a !important; }
+    .header { background: #fff; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 1px 4px rgba(0, 21, 41, .08); z-index: 10; }
+    .header-title { font-size: 16px; font-weight: 600; color: #303133; }
+    .main { padding: 16px; overflow-y: auto; }
+    .page-card { background: #fff; border-radius: 4px; padding: 16px; }
+    .search-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+    .search-bar .el-input { width: 200px; }
+    .table-toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .pagination { display: flex; justify-content: flex-end; margin-top: 14px; }
+    .job-card { margin-bottom: 16px; }
+    .card-header { display: flex; align-items: center; justify-content: space-between; }
+    .card-body { color: #606266; font-size: 14px; line-height: 1.8; }
+    .card-body .cron { color: #909399; }
+    .card-actions { margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <el-container class="layout">
+      <el-aside width="200px" class="aside">
+        <div class="logo">定时任务调度中心</div>
+        <el-menu background-color="#2f2f2f" text-color="#cfd3dc" active-text-color="#ffffff" :default-active="activeMenu" @select="onMenuSelect">
+          <el-menu-item index="tasks">任务管理</el-menu-item>
+          <el-menu-item index="logs">任务日志</el-menu-item>
+          <el-menu-item index="startups">内置任务</el-menu-item>
+        </el-menu>
+      </el-aside>
+      <el-container>
+        <el-header class="header">
+          <span class="header-title">{{ pageTitle }}</span>
+        </el-header>
+        <el-main class="main">
+          <!-- 任务管理 -->
+          <div v-show="activeMenu === 'tasks'" class="page-card">
+            <div class="search-bar">
+              <el-input v-model="taskQuery.key" placeholder="关键字（AppId/任务名）" clearable @keyup.enter="loadTasks"></el-input>
+              <el-input v-model="taskQuery.groupName" placeholder="所属分组" clearable @keyup.enter="loadTasks"></el-input>
+              <el-input v-model="taskQuery.nodeName" placeholder="所属节点" clearable @keyup.enter="loadTasks"></el-input>
+              <el-button type="primary" @click="loadTasks">查询</el-button>
+              <el-button @click="resetTaskQuery">重置</el-button>
+            </div>
+            <div class="table-toolbar">
+              <el-button type="danger" plain :disabled="selectedTasks.length === 0" @click="deleteTasks">批量删除</el-button>
+            </div>
+            <el-table :data="tasks" v-loading="tasksLoading" border stripe @selection-change="onSelectionChange">
+              <el-table-column type="selection" width="45"></el-table-column>
+              <el-table-column prop="Name" label="任务名称" min-width="160" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="AppId" label="应用ID" min-width="150" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="GroupName" label="所属分组" width="110" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="NodeName" label="节点" width="90" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="IpAddress" label="IP地址" width="130" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="Cron" label="Cron" width="150" show-overflow-tooltip></el-table-column>
+              <el-table-column label="状态" width="85">
+                <template #default="scope">
+                  <el-tag :type="statusMap[scope.row.Status].type">{{ statusMap[scope.row.Status].text }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="启用" width="70">
+                <template #default="scope">
+                  <el-switch v-model="scope.row.IsEnabled" @change="toggleEnabled(scope.row)"></el-switch>
+                </template>
+              </el-table-column>
+              <el-table-column prop="RunningTime" label="最后运行时间" width="165">
+                <template #default="scope">{{ fmtTime(scope.row.RunningTime) }}</template>
+              </el-table-column>
+              <el-table-column prop="HeartbeatTime" label="心跳时间" width="165">
+                <template #default="scope">{{ fmtTime(scope.row.HeartbeatTime) }}</template>
+              </el-table-column>
+              <el-table-column label="负责人" width="140">
+                <template #default="scope">
+                  <el-tag v-for="p in scope.row.Persons" :key="p" size="small" style="margin-right:4px;">{{ p }}</el-tag>
+                  <span v-if="scope.row.Persons.length === 0" style="color:#c0c4cc;">-</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="230" fixed="right">
+                <template #default="scope">
+                  <el-button v-if="scope.row.Status !== 1" size="small" type="success" @click="changeStatus(scope.row, 1)">启动</el-button>
+                  <el-button v-else size="small" type="warning" @click="changeStatus(scope.row, 0)">暂停</el-button>
+                  <el-button size="small" type="primary" :disabled="scope.row.Status !== 1" @click="executeTask(scope.row)">执行一次</el-button>
+                  <el-button size="small" type="info" @click="openPersonsDialog(scope.row)">负责人</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+            <div class="pagination">
+              <el-pagination background layout="total, sizes, prev, pager, next, jumper" :total="taskPage.total" :current-page="taskPage.pageIndex" :page-size="taskPage.pageSize" :page-sizes="[10, 20, 50]" @current-change="onTaskPageChange" @size-change="onTaskSizeChange"></el-pagination>
+            </div>
+          </div>
+
+          <!-- 任务日志 -->
+          <div v-show="activeMenu === 'logs'" class="page-card">
+            <div class="search-bar">
+              <el-input v-model="logQuery.appId" placeholder="应用ID" clearable @keyup.enter="loadLogs"></el-input>
+              <el-input v-model="logQuery.taskName" placeholder="任务名称" clearable @keyup.enter="loadLogs"></el-input>
+              <el-select v-model="logQuery.type" style="width:120px;">
+                <el-option v-for="t in logTypes" :key="t.value" :label="t.label" :value="t.value"></el-option>
+              </el-select>
+              <el-input v-model="logQuery.key" placeholder="日志内容关键字" clearable @keyup.enter="loadLogs"></el-input>
+              <el-date-picker v-model="logQuery.timeRange" type="daterange" range-separator="至" start-placeholder="开始时间" end-placeholder="结束时间" value-format="YYYY-MM-DD HH:mm:ss" style="width:340px;"></el-date-picker>
+              <el-button type="primary" @click="loadLogs">查询</el-button>
+              <el-button @click="resetLogQuery">重置</el-button>
+            </div>
+            <el-table :data="logs" v-loading="logsLoading" border stripe>
+              <el-table-column prop="AppId" label="应用ID" min-width="150" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="TaskName" label="任务名称" min-width="160" show-overflow-tooltip></el-table-column>
+              <el-table-column prop="Content" label="日志内容" min-width="320" show-overflow-tooltip></el-table-column>
+              <el-table-column label="类型" width="90">
+                <template #default="scope">
+                  <el-tag :type="logTypeMap[scope.row.Type].type">{{ logTypeMap[scope.row.Type].text }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="CreateTime" label="创建时间" width="170">
+                <template #default="scope">{{ fmtTime(scope.row.CreateTime) }}</template>
+              </el-table-column>
+            </el-table>
+            <div class="pagination">
+              <el-pagination background layout="total, sizes, prev, pager, next, jumper" :total="logPage.total" :current-page="logPage.pageIndex" :page-size="logPage.pageSize" :page-sizes="[10, 20, 50]" @current-change="onLogPageChange" @size-change="onLogSizeChange"></el-pagination>
+            </div>
+          </div>
+
+          <!-- 内置任务 -->
+          <div v-show="activeMenu === 'startups'">
+            <el-card v-for="job in startupJobs" :key="job.name" class="job-card">
+              <template #header>
+                <div class="card-header">
+                  <span style="font-weight:600;">{{ job.name }}</span>
+                  <el-tag type="info">{{ job.cron }}</el-tag>
+                </div>
+              </template>
+              <div class="card-body">
+                <p>{{ job.remark }}</p>
+              </div>
+              <div class="card-actions">
+                <el-button size="small" type="warning" @click="stopStartupJob(job.name)">暂停</el-button>
+                <el-button size="small" type="success" @click="resumeStartupJob(job.name)">恢复</el-button>
+                <el-button size="small" type="primary" @click="excuteStartupJob(job.name)">执行一次</el-button>
+              </div>
+            </el-card>
+          </div>
+        </el-main>
+      </el-container>
+    </el-container>
+
+    <!-- 设置负责人弹窗 -->
+    <el-dialog v-model="personDialogVisible" title="设置负责人" width="460px">
+      <el-select v-model="selectedPersonIds" multiple placeholder="请选择负责人" style="width:100%;">
+        <el-option v-for="p in personList" :key="p.Id" :label="p.Name + (p.Email ? '（' + p.Email + '）' : '')" :value="p.Id"></el-option>
+      </el-select>
+      <div v-if="personList.length === 0" style="color:#c0c4cc;font-size:13px;margin-top:8px;">暂无可用人员</div>
+      <template #footer>
+        <el-button @click="personDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="savePersons">确定</el-button>
+      </template>
+    </el-dialog>
+  </div>
+
+  <script src="/lib/vue.global.prod.js"></script>
+  <script src="/lib/element-plus.min.js"></script>
+  <script src="/lib/element-plus-icons.min.js"></script>
+  <script>
+    const { createApp } = Vue;
+    const { ElMessage, ElMessageBox } = ElementPlus;
+
+    // 请求封装：HTTP 失败或响应 Status === false 时抛出异常
+    async function request(url, options = {}) {
+      const res = await fetch(url, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options
+      });
+      let data = null;
+      try { data = await res.json(); } catch (e) { data = null; }
+      if (!res.ok) {
+        throw new Error((data && data.Message) || ('请求失败（HTTP ' + res.status + '）'));
+      }
+      if (data && typeof data.Status === 'boolean' && data.Status === false) {
+        throw new Error(data.Message || '操作失败');
+      }
+      return data;
+    }
+
+    function buildQuery(params) {
+      const usp = new URLSearchParams();
+      Object.keys(params).forEach(k => {
+        const v = params[k];
+        if (v !== null && v !== undefined && v !== '' && v !== -1) usp.append(k, v);
+      });
+      const s = usp.toString();
+      return s ? ('?' + s) : '';
+    }
+
+    createApp({
+      data() {
+        return {
+          activeMenu: 'tasks',
+          statusMap: {
+            0: { text: '未启动', type: 'info' },
+            1: { text: '运行中', type: 'success' },
+            99: { text: '异常', type: 'danger' }
+          },
+          logTypeMap: {
+            '-1': { text: '全部', type: 'info' },
+            0: { text: '注册', type: '' },
+            1: { text: '上线', type: 'success' },
+            2: { text: '下线', type: 'info' },
+            3: { text: '运行', type: 'primary' },
+            4: { text: '心跳', type: 'warning' },
+            99: { text: '异常', type: 'danger' }
+          },
+          // 任务管理
+          taskQuery: { key: '', groupName: '', nodeName: '' },
+          taskPage: { pageIndex: 1, pageSize: 10, total: 0 },
+          tasks: [],
+          selectedTasks: [],
+          tasksLoading: false,
+          // 任务日志
+          logQuery: { appId: '', taskName: '', type: -1, key: '', timeRange: null },
+          logPage: { pageIndex: 1, pageSize: 10, total: 0 },
+          logs: [],
+          logsLoading: false,
+          logTypes: [
+            { value: -1, label: '全部类型' },
+            { value: 0, label: '注册' },
+            { value: 1, label: '上线' },
+            { value: 2, label: '下线' },
+            { value: 3, label: '运行' },
+            { value: 4, label: '心跳' },
+            { value: 99, label: '异常' }
+          ],
+          // 负责人
+          personList: [],
+          personDialogVisible: false,
+          selectedPersonIds: [],
+          currentTask: null,
+          // 内置任务（与 appsettings.json Quartz.ScheduleJobs 对应）
+          startupJobs: [
+            { name: 'DeleteTaskLogJob', cron: '0 0 0 1/1 * ?', remark: '删除定时任务日志（心跳1天、运行1天、错误1天），每天执行一次' },
+            { name: 'MonitorTaskStatusJob', cron: '0 0/1 * * * ?', remark: '监控定时任务心跳并更新上线、下线状态，每5分钟执行一次' }
+          ]
+        };
+      },
+      computed: {
+        pageTitle() {
+          const map = { tasks: '任务管理', logs: '任务日志', startups: '内置任务' };
+          return map[this.activeMenu] || '';
+        }
+      },
+      methods: {
+        fmtTime(v) {
+          if (!v) return '-';
+          const s = String(v);
+          if (s.indexOf('0001') === 0 || s.indexOf('9999') === 0) return '-';
+          return s;
+        },
+        // ---------- 任务管理 ----------
+        onMenuSelect(index) {
+          this.activeMenu = index;
+          if (index === 'tasks') this.loadTasks();
+          else if (index === 'logs') this.loadLogs();
+          else this.loadPersons();
+        },
+        async loadTasks() {
+          this.tasksLoading = true;
+          try {
+            const params = { key: this.taskQuery.key, groupName: this.taskQuery.groupName, nodeName: this.taskQuery.nodeName };
+            const url = '/api/JobTasks/' + this.taskPage.pageIndex + '/' + this.taskPage.pageSize + buildQuery(params);
+            const res = await request(url);
+            this.tasks = res.Items || [];
+            this.taskPage.total = res.Total || 0;
+          } catch (e) {
+            ElMessage.error(e.message);
+          } finally {
+            this.tasksLoading = false;
+          }
+        },
+        resetTaskQuery() {
+          this.taskQuery = { key: '', groupName: '', nodeName: '' };
+          this.taskPage.pageIndex = 1;
+          this.loadTasks();
+        },
+        onTaskPageChange(page) {
+          this.taskPage.pageIndex = page;
+          this.loadTasks();
+        },
+        onTaskSizeChange(size) {
+          this.taskPage.pageSize = size;
+          this.taskPage.pageIndex = 1;
+          this.loadTasks();
+        },
+        onSelectionChange(rows) {
+          this.selectedTasks = rows;
+        },
+        async toggleEnabled(row) {
+          try {
+            await request('/api/JobTasks/' + row.Id + '/IsEnabled', { method: 'PATCH' });
+            ElMessage.success(row.IsEnabled ? '已启用' : '已禁用');
+          } catch (e) {
+            row.IsEnabled = !row.IsEnabled;
+            ElMessage.error(e.message);
+          }
+        },
+        async changeStatus(row, status) {
+          const op = status === 1 ? '启动' : '暂停';
+          try {
+            await ElMessageBox.confirm('确定要' + op + '任务「' + row.Name + '」吗？', '提示', { type: 'warning' });
+          } catch (e) {
+            return;
+          }
+          try {
+            await request('/api/JobTasks/' + row.Id + '/Status?status=' + status, { method: 'PATCH' });
+            ElMessage.success(op + '成功');
+            this.loadTasks();
+          } catch (e) {
+            ElMessage.error(e.message);
+          }
+        },
+        async executeTask(row) {
+          try {
+            await ElMessageBox.confirm('确定要立即执行任务「' + row.Name + '」吗？', '提示', { type: 'warning' });
+          } catch (e) {
+            return;
+          }
+          try {
+            await request('/api/JobTasks/' + row.Id + '/Excute', { method: 'POST' });
+            ElMessage.success('执行成功');
+            this.loadTasks();
+          } catch (e) {
+            ElMessage.error(e.message);
+          }
+        },
+        async deleteTasks() {
+          const names = this.selectedTasks.map(t => t.Name).join('、');
+          try {
+            await ElMessageBox.confirm('确定要删除选中的 ' + this.selectedTasks.length + ' 个任务吗？', '提示', { type: 'warning' });
+          } catch (e) {
+            return;
+          }
+          try {
+            await request('/api/JobTasks/Batch/IsDeleted', {
+              method: 'PATCH',
+              body: JSON.stringify(this.selectedTasks.map(t => t.Id))
+            });
+            ElMessage.success('删除成功');
+            this.loadTasks();
+          } catch (e) {
+            ElMessage.error(e.message);
+          }
+        },
+        async openPersonsDialog(row) {
+          this.currentTask = row;
+          this.selectedPersonIds = [];
+          await this.loadPersons();
+          this.personDialogVisible = true;
+        },
+        async loadPersons() {
+          try {
+            this.personList = await request('/api/JobPersons') || [];
+          } catch (e) {
+            this.personList = [];
+            ElMessage.error(e.message);
+          }
+        },
+        async savePersons() {
+          if (this.selectedPersonIds.length === 0) {
+            ElMessage.warning('请选择负责人');
+            return;
+          }
+          try {
+            await request('/api/JobTasks/' + this.currentTask.Id + '/Persons', {
+              method: 'POST',
+              body: JSON.stringify(this.selectedPersonIds)
+            });
+            ElMessage.success('设置成功');
+            this.personDialogVisible = false;
+            this.loadTasks();
+          } catch (e) {
+            ElMessage.error(e.message);
+          }
+        },
+        // ---------- 任务日志 ----------
+        async loadLogs() {
+          this.logsLoading = true;
+          try {
+            const params = {
+              appId: this.logQuery.appId,
+              taskName: this.logQuery.taskName,
+              type: this.logQuery.type,
+              key: this.logQuery.key,
+              startTime: this.logQuery.timeRange ? this.logQuery.timeRange[0] : '',
+              endTime: this.logQuery.timeRange ? this.logQuery.timeRange[1] : ''
+            };
+            const url = '/api/JobTaskLogs/' + this.logPage.pageIndex + '/' + this.logPage.pageSize + buildQuery(params);
+            const res = await request(url);
+            this.logs = res.Items || [];
+            this.logPage.total = res.Total || 0;
+          } catch (e) {
+            ElMessage.error(e.message);
+          } finally {
+            this.logsLoading = false;
+          }
+        },
+        resetLogQuery() {
+          this.logQuery = { appId: '', taskName: '', type: -1, key: '', timeRange: null };
+          this.logPage.pageIndex = 1;
+          this.loadLogs();
+        },
+        onLogPageChange(page) {
+          this.logPage.pageIndex = page;
+          this.loadLogs();
+        },
+        onLogSizeChange(size) {
+          this.logPage.pageSize = size;
+          this.logPage.pageIndex = 1;
+          this.loadLogs();
+        },
+        // ---------- 内置任务 ----------
+        async controlStartupJob(name, action, successMsg) {
+          try {
+            await request('/api/Startups/Default/Jobs/' + name + '/' + action, { method: 'POST' });
+            ElMessage.success(successMsg);
+          } catch (e) {
+            ElMessage.error(e.message);
+          }
+        },
+        stopStartupJob(name) { this.controlStartupJob(name, 'Stop', '暂停成功'); },
+        resumeStartupJob(name) { this.controlStartupJob(name, 'Resume', '恢复成功'); },
+        excuteStartupJob(name) { this.controlStartupJob(name, 'Excute', '任务触发执行成功'); }
+      },
+      mounted() {
+        this.loadTasks();
+      }
+    }).use(ElementPlus).mount('#app');
+  </script>
+</body>
+</html>

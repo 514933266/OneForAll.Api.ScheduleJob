@@ -1,7 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using OneForAll.Core;
-using OneForAll.Core.OAuth;
 using ScheduleJob.Application.Dtos;
 using ScheduleJob.Application.Interfaces;
 using System;
@@ -14,7 +12,7 @@ namespace ScheduleJob.Host.Controllers
     /// 人员信息
     /// </summary>
     [Route("api/[controller]")]
-    [Authorize(Roles = UserRoleType.Ruler)]
+    [AllowAnonymous]
     public class JobPersonsController : BaseController
     {
         private readonly IJobPersonService _service;
