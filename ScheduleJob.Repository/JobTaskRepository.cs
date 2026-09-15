@@ -79,5 +79,22 @@ namespace ScheduleJob.Repository
                 return await DbSet.Where(w => w.IsEnabled).ToListAsync();
             }
         }
+
+        /// <summary>
+        /// 查询所有任务列表（用于锁状态检查等需要全量任务信息的场景）
+        /// </summary>
+        /// <param name="asNoTracking">是否不跟踪</param>
+        /// <returns>列表</returns>
+        public async Task<IEnumerable<JobTask>> GetListAllAsync(bool asNoTracking)
+        {
+            if (asNoTracking)
+            {
+                return await DbSet.AsNoTracking().ToListAsync();
+            }
+            else
+            {
+                return await DbSet.ToListAsync();
+            }
+        }
     }
 }

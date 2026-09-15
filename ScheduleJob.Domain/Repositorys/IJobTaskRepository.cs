@@ -38,5 +38,12 @@ namespace ScheduleJob.Domain.Repositorys
         /// </summary>
         /// <returns>列表</returns>
         Task<IEnumerable<JobTask>> GetListEnabledAsync(bool asNoTracking);
+
+        /// <summary>
+        /// 查询所有任务列表（用于锁状态检查等需要全量任务信息的场景）
+        /// </summary>
+        /// <param name="asNoTracking">是否不跟踪</param>
+        /// <returns>列表</returns>
+        Task<IEnumerable<JobTask>> GetListAllAsync(bool asNoTracking);
     }
 }

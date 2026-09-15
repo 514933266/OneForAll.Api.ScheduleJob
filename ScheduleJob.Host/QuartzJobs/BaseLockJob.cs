@@ -89,6 +89,11 @@ namespace ScheduleJob.Host.QuartzJobs
         }
 
         /// <summary>
+        /// 默认最大并发数（仅锁记录首次创建时生效，子类可覆盖以放宽并发上限）
+        /// </summary>
+        protected virtual int DefaultMaxConcurrent => 1;
+
+        /// <summary>
         /// 尝试获取执行权限
         /// </summary>
         /// <param name="clientId">客户端Id</param>
@@ -102,7 +107,7 @@ namespace ScheduleJob.Host.QuartzJobs
             {
                 var lockEntity = await _lockRepository.GetWithLockAsync(clientId, taskName, asNoTracking: true);
 
-                // 如果不存在锁配置，创建默认配置（允许1个并发）
+                // 如果不存在锁配置，创建默认配置
                 if (lockEntity == null)
                 {
                     lockEntity = new JobRunningLock
@@ -111,7 +116,7 @@ namespace ScheduleJob.Host.QuartzJobs
                         TaskName = taskName,
                         ClientId = clientId,
                         Version = 0,
-                        MaxConcurrent = 1,
+                        MaxConcurrent = DefaultMaxConcurrent,
                         CurrentRunningCount = 0,
                         CreateTime = DateTime.UtcNow,
                         UpdateTime = DateTime.UtcNow

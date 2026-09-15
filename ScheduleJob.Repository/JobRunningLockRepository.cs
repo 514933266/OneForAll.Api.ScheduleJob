@@ -4,7 +4,6 @@ using OneForAll.EFCore;
 using ScheduleJob.Domain.Entities;
 using ScheduleJob.Domain.Repositorys;
 using System;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace ScheduleJob.Repository
@@ -136,5 +135,6 @@ namespace ScheduleJob.Repository
                 return false;
             }
         }
+
     }
 }
