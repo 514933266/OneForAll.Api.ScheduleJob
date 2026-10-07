@@ -27,8 +27,6 @@ namespace ScheduleJob.Host.QuartzJobs
     [DisallowConcurrentExecution]
     public class MonitorTaskStatusJob : BaseLockJob
     {
-        private readonly AuthConfig _config;
-        private readonly IScheduleJobService _service;
         private readonly IJobTaskRepository _repository;
         private readonly IJobNotificationConfigRepository _notificationRepository;
         private readonly IJobTaskManager _taskManager;
@@ -38,19 +36,19 @@ namespace ScheduleJob.Host.QuartzJobs
 
         public MonitorTaskStatusJob(
             AuthConfig config,
+            JobLockConfig jobLockConfig,
             IScheduleJobService service,
             IJobTaskRepository repository,
             IJobRunningLockRepository lockRepository,
             IJobLockHolderRepository holderRepository,
+            IJobMonitorStateRepository stateRepository,
             IJobNotificationConfigRepository notificationRepository,
             IJobTaskManager taskManager,
             IJobTaskLogManager logManager,
             ISysUmsMessageHttpService umsHttpService,
             IHttpClientFactory httpClientFactory)
-            : base(config, service, lockRepository, holderRepository)
+            : base(config, jobLockConfig, service, lockRepository, holderRepository, stateRepository)
         {
-            _config = config;
-            _service = service;
             _repository = repository;
             _notificationRepository = notificationRepository;
             _taskManager = taskManager;
@@ -165,12 +163,6 @@ namespace ScheduleJob.Host.QuartzJobs
                 await AddLogAsync($"探测任务 {job.Name} 失败（无响应）：{job.NodeName}，错误:{ex.Message}", true);
                 return false;
             }
-        }
-
-        // 记录监控日志
-        private async Task AddLogAsync(string log, bool isException = false)
-        {
-            await _service.AddLogAsync(_config.ClientCode, typeof(MonitorTaskStatusJob).Name, log, isException);
         }
 
         // 发送通知（支持企微机器人、钉钉机器人）

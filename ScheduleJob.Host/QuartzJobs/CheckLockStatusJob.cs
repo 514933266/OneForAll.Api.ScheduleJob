@@ -33,11 +33,13 @@ namespace ScheduleJob.Host.QuartzJobs
 
         public CheckLockStatusJob(
             AuthConfig config,
+            JobLockConfig jobLockConfig,
             IScheduleJobService service,
             IJobRunningLockRepository lockRepository,
             IJobLockHolderRepository holderRepository,
+            IJobMonitorStateRepository stateRepository,
             IJobTaskRepository taskRepository)
-            : base(config, service, lockRepository, holderRepository)
+            : base(config, jobLockConfig, service, lockRepository, holderRepository, stateRepository)
         {
             _lockRepository = lockRepository;
             _holderRepository = holderRepository;

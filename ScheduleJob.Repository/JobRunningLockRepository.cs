@@ -1,4 +1,6 @@
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using OneForAll.Core.ORM.Models;
 using OneForAll.EFCore;
 using ScheduleJob.Domain.Entities;
@@ -121,18 +123,53 @@ namespace ScheduleJob.Repository
                 if (affected == 0)
                 {
                     // 乐观锁冲突：Holder 已插入但 RunningLock 校验失败，回滚全部
-                    await transaction.RollbackAsync();
+                    await SafeRollbackAsync(transaction);
                     return false;
                 }
 
                 await transaction.CommitAsync();
                 return true;
             }
+            catch (Exception ex) when (IsUniqueIndexConflict(ex))
+            {
+                // INSERT Holder 唯一约束冲突（2601/2627）→ 并发竞争失败，返回 false
+                await SafeRollbackAsync(transaction);
+                return false;
+            }
             catch
             {
-                // INSERT 唯一约束冲突 或 其他异常 → 锁获取失败
+                // 其他异常（锁表未创建 208、连接失败、超时、死锁等）→ 回滚后向上抛出，
+                // 由调用方（BaseLockJob）按配置决定放行或跳过
+                await SafeRollbackAsync(transaction);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// 判断异常链中是否包含唯一索引冲突（SQL Server 错误号 2601/2627）
+        /// </summary>
+        private static bool IsUniqueIndexConflict(Exception ex)
+        {
+            while (ex != null)
+            {
+                if (ex is SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+                    return true;
+                ex = ex.InnerException;
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// 安全回滚事务（回滚失败时忽略，避免掩盖原始异常）
+        /// </summary>
+        private static async Task SafeRollbackAsync(IDbContextTransaction transaction)
+        {
+            try
+            {
                 await transaction.RollbackAsync();
-                return false;
+            }
+            catch
+            {
             }
         }
 

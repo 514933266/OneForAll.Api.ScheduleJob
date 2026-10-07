@@ -70,7 +70,7 @@ namespace ScheduleJob.Domain.Entities
         /// </summary>
         [Required]
         [StringLength(50)]
-        public string IpAddress { get; set; } = "127.0.0.1";
+        public string IpAddress { get; set; } = "localhost";
 
         /// <summary>
         /// 正则表达式

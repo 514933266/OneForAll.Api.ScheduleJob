@@ -25,5 +25,12 @@ namespace ScheduleJob.HttpService.Interfaces
         /// <param name="form">表单</param>
         /// <returns></returns>
         Task SendToDingTalkMarkdownAsync(UmsDingTalkRobotMessageRequest form);
+
+        /// <summary>
+        /// 发送邮件通知
+        /// </summary>
+        /// <param name="form">表单</param>
+        /// <returns></returns>
+        Task SendEmailAsync(UmsEmailMessageRequest form);
     }
 }

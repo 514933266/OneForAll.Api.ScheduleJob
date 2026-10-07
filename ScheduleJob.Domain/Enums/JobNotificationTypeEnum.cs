@@ -20,5 +20,10 @@ namespace ScheduleJob.Domain.Enums
         /// 钉钉机器人
         /// </summary>
         DingTalkRobot = 1,
+
+        /// <summary>
+        /// 邮件通知
+        /// </summary>
+        Email = 2,
     }
 }

@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ScheduleJob.Domain.Entities;
 
 namespace ScheduleJob.Host
@@ -11,12 +11,7 @@ namespace ScheduleJob.Host
 
         }
 
-        public virtual DbSet<JobTask> JobTasks { get; set; }
-        public virtual DbSet<JobTaskLog> JobTaskLogs { get; set; }
-        public virtual DbSet<JobNotificationConfig> JobNotificationConfigs { get; set; }
-        public virtual DbSet<JobMidTaskPerson> JobMidTaskPersons { get; set; }
-        public virtual DbSet<JobRunningLock> JobRunningLocks { get; set; }
-        public virtual DbSet<JobLockHolder> JobLockHolders { get; set; }
+        public virtual DbSet<JobMonitorState> JobMonitorStates { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -41,6 +36,13 @@ namespace ScheduleJob.Host
             modelBuilder.Entity<JobMidTaskPerson>(entity =>
             {
                 entity.ToTable("job_mid_task_person");
+                entity.Property(e => e.Id).ValueGeneratedOnAdd();
+            });
+
+            modelBuilder.Entity<JobMonitorState>(entity =>
+            {
+                entity.ToTable("job_monitor_state");
+                entity.HasIndex(e => new { e.ClientCode, e.TaskName }).IsUnique();
                 entity.Property(e => e.Id).ValueGeneratedOnAdd();
             });
 

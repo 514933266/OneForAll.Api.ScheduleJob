@@ -18,20 +18,18 @@ namespace ScheduleJob.Host.QuartzJobs
     [DisallowConcurrentExecution]
     public class DeleteTaskLogJob : BaseLockJob
     {
-        private readonly AuthConfig _config;
-        private readonly IScheduleJobService _service;
         private readonly IJobTaskLogRepository _repository;
         public DeleteTaskLogJob(
             AuthConfig config,
+            JobLockConfig jobLockConfig,
             IScheduleJobService service,
             IJobRunningLockRepository lockRepository,
             IJobLockHolderRepository holderRepository,
+            IJobMonitorStateRepository stateRepository,
             IJobTaskLogManager logManager,
             IJobTaskLogRepository repository)
-            : base(config, service, lockRepository, holderRepository)
+            : base(config, jobLockConfig, service, lockRepository, holderRepository, stateRepository)
         {
-            _config = config;
-            _service = service;
             _repository = repository;
         }
 
@@ -113,12 +111,6 @@ namespace ScheduleJob.Host.QuartzJobs
                     return config;
             }
             return new DeleteTaskLogConfig();
-        }
-
-        // 记录日志
-        private async Task AddLogAsync(string log, bool isException = false)
-        {
-            await _service.AddLogAsync(_config.ClientCode, typeof(DeleteTaskLogJob).Name, log, isException);
         }
     }
 }

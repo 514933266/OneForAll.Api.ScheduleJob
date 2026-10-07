@@ -37,6 +37,7 @@ namespace ScheduleJob.Host
         private const string CORS = "Cors";
         private const string AUTH = "Auth";
         private const string QUARTZ = "Quartz";
+        private const string JOB_LOCK = "JobLock";
 
         private const string HTTP_SERVICE = "ScheduleJob.HttpService";
         private const string HTTP_SERVICE_KEY = "HttpService";
@@ -169,6 +170,10 @@ namespace ScheduleJob.Host
             #endregion
 
             #region Quartz
+
+            // 读取定时任务运行锁配置（锁基础设施异常时是否放行执行）
+            var jobLockConfig = Configuration.GetSection(JOB_LOCK).Get<JobLockConfig>() ?? new JobLockConfig();
+            services.AddSingleton(jobLockConfig);
 
             // 读取 Quartz 定时任务配置
             var quartzConfig = Configuration.GetSection(QUARTZ).Get<QuartzScheduleJobConfig>();

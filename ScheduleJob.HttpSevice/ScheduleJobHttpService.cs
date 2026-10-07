@@ -39,7 +39,7 @@ namespace ScheduleJob.HttpService
             var client = GetHttpClient(_config.SysJob);
             if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
-                var response = await client.PostAsync("/api/ScheduleJobs", request, new JsonMediaTypeFormatter());
+                var response = await client.PostAsync($"api/ScheduleJobs", request, new JsonMediaTypeFormatter());
                 var msg = await response.Content.ReadAsAsync<BaseMessage>();
                 return msg;
             }
@@ -57,7 +57,7 @@ namespace ScheduleJob.HttpService
             var client = GetHttpClient(_config.SysJob);
             if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
-                var url = $"{client.BaseAddress}/{appId}/{taskName}";
+                var url = $"api/ScheduleJobs/{appId}/{taskName}";
                 var response = await client.DeleteAsync(url);
                 var msg = await response.Content.ReadAsAsync<BaseMessage>();
                 return msg;
@@ -77,7 +77,7 @@ namespace ScheduleJob.HttpService
             var client = GetHttpClient(_config.SysJob);
             if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
-                var url = $"{client.BaseAddress}/{appId}/{taskName}";
+                var url = $"api/ScheduleJobs/{appId}/{taskName}/Logs";
                 var response = await client.PostAsync(url, log, new JsonMediaTypeFormatter());
                 var msg = await response.Content.ReadAsAsync<BaseMessage>();
                 return msg;

@@ -37,7 +37,7 @@ namespace ScheduleJob.HttpService
             var client = GetHttpClient(_config.SysUms);
             if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
-                await client.PostAsync("/api/WechatQyRobot/Markdown", form, new JsonMediaTypeFormatter());
+                await client.PostAsync("api/WxqyMessages/Robot/Markdown", form, new JsonMediaTypeFormatter());
             }
         }
 
@@ -51,8 +51,21 @@ namespace ScheduleJob.HttpService
             var client = GetHttpClient(_config.SysUms);
             if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
             {
-                var url = $"{client.BaseAddress}api/DingTalkMessages/Robot/Markdown?isSync=true";
-                await client.PostAsync(new Uri(url), form, new JsonMediaTypeFormatter());
+                await client.PostAsync("api/DingTalkMessages/Robot/Markdown", form, new JsonMediaTypeFormatter());
+            }
+        }
+
+        /// <summary>
+        /// 发送邮件通知
+        /// </summary>
+        /// <param name="form">表单</param>
+        /// <returns></returns>
+        public async Task SendEmailAsync(UmsEmailMessageRequest form)
+        {
+            var client = GetHttpClient(_config.SysUms);
+            if (client != null && client.BaseAddress != null && !string.IsNullOrEmpty(client.BaseAddress.Host))
+            {
+                var msg = await client.PostAsync("api/UmsEmailMessages", form, new JsonMediaTypeFormatter());
             }
         }
     }
