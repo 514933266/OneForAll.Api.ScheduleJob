@@ -48,13 +48,20 @@ namespace ScheduleJob.Domain
         /// <param name="key">关键字</param>
         /// <param name="groupName">所属分组</param>
         /// <param name="nodeName">所属节点</param>
+        /// <param name="appId">应用程序id</param>
         /// <returns>分页列表</returns>
-        public async Task<PageList<JobTask>> GetPageAsync(int pageIndex, int pageSize, string key, string groupName, string nodeName)
+        public async Task<PageList<JobTask>> GetPageAsync(
+            int pageIndex,
+            int pageSize,
+            string key,
+            string groupName,
+            string nodeName,
+            string appId)
         {
             if (pageIndex < 1) pageIndex = 1;
             if (pageSize < 1) pageSize = 10;
             if (pageSize > 100) pageSize = 100;
-            return await _repository.GetPageAsync(pageIndex, pageSize, key, groupName, nodeName);
+            return await _repository.GetPageAsync(pageIndex, pageSize, key, groupName, nodeName, appId);
         }
 
         /// <summary>

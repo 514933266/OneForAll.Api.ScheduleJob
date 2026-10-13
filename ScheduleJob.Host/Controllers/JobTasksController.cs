@@ -32,6 +32,7 @@ namespace ScheduleJob.Host.Controllers
         /// <param name="key">关键字</param>
         /// <param name="groupName">所属分组</param>
         /// <param name="nodeName">所属节点</param>
+        /// <param name="appId">应用程序id</param>
         /// <returns>权限列表</returns>
         [HttpGet]
         [Route("{pageIndex}/{pageSize}")]
@@ -40,9 +41,10 @@ namespace ScheduleJob.Host.Controllers
             int pageSize,
             [FromQuery] string key = default,
             [FromQuery] string groupName = default,
-            [FromQuery] string nodeName = default)
+            [FromQuery] string nodeName = default,
+            [FromQuery] string appId = default)
         {
-            return await _service.GetPageAsync(pageIndex, pageSize, key, groupName, nodeName);
+            return await _service.GetPageAsync(pageIndex, pageSize, key, groupName, nodeName, appId);
         }
 
         /// <summary>

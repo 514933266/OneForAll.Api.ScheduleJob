@@ -32,8 +32,15 @@ namespace ScheduleJob.Repository
         /// <param name="key">关键字</param>
         /// <param name="groupName">所属分组</param>
         /// <param name="nodeName">所属节点</param>
+        /// <param name="appId">应用程序id</param>
         /// <returns>分页列表</returns>
-        public async Task<PageList<JobTask>> GetPageAsync(int pageIndex, int pageSize, string key, string groupName, string nodeName)
+        public async Task<PageList<JobTask>> GetPageAsync(
+            int pageIndex,
+            int pageSize,
+            string key,
+            string groupName,
+            string nodeName,
+            string appId)
         {
             var predicate = PredicateBuilder.Create<JobTask>(w => true);
             if (!key.IsNullOrEmpty())
@@ -42,6 +49,8 @@ namespace ScheduleJob.Repository
                 predicate = predicate.And(w => w.GroupName.Contains(groupName));
             if (!nodeName.IsNullOrEmpty())
                 predicate = predicate.And(w => w.NodeName.Contains(nodeName));
+            if (!appId.IsNullOrEmpty())
+                predicate = predicate.And(w => w.AppId.Contains(appId));
 
             var total = await DbSet.CountAsync(predicate);
 

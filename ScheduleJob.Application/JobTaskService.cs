@@ -53,10 +53,17 @@ namespace ScheduleJob.Application
         /// <param name="key">关键字</param>
         /// <param name="groupName">所属分组</param>
         /// <param name="nodeName">所属节点</param>
+        /// <param name="appId">应用程序id</param>
         /// <returns>分页列表</returns>
-        public async Task<PageList<JobTaskDto>> GetPageAsync(int pageIndex, int pageSize, string key, string groupName, string nodeName)
+        public async Task<PageList<JobTaskDto>> GetPageAsync(
+            int pageIndex,
+            int pageSize,
+            string key,
+            string groupName,
+            string nodeName,
+            string appId)
         {
-            var data = await _manager.GetPageAsync(pageIndex, pageSize, key, groupName, nodeName);
+            var data = await _manager.GetPageAsync(pageIndex, pageSize, key, groupName, nodeName, appId);
             var items = _mapper.Map<IEnumerable<JobTask>, IEnumerable<JobTaskDto>>(data.Items);
             var persons = await _contactRepository.GetListPersonAsync(items.Select(s => s.Id).ToList());
             return new PageList<JobTaskDto>(data.Total, data.PageSize, data.PageIndex, items);

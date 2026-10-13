@@ -25,8 +25,15 @@ namespace ScheduleJob.Application.Interfaces
         /// <param name="key">关键字</param>
         /// <param name="groupName">所属分组</param>
         /// <param name="nodeName">所属节点</param>
+        /// <param name="appId">应用程序id</param>
         /// <returns>分页列表</returns>
-        Task<PageList<JobTaskDto>> GetPageAsync(int pageIndex, int pageSize, string key, string groupName, string nodeName);
+        Task<PageList<JobTaskDto>> GetPageAsync(
+            int pageIndex,
+            int pageSize,
+            string key,
+            string groupName,
+            string nodeName,
+            string appId);
 
         /// <summary>
         /// 启用/禁用

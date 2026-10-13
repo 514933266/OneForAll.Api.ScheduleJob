@@ -23,8 +23,15 @@ namespace ScheduleJob.Domain.Repositorys
         /// <param name="key">关键字</param>
         /// <param name="groupName">所属分组</param>
         /// <param name="nodeName">所属节点</param>
+        /// <param name="appId">应用程序id</param>
         /// <returns>分页列表</returns>
-        Task<PageList<JobTask>> GetPageAsync(int pageIndex, int pageSize, string key, string groupName, string nodeName);
+        Task<PageList<JobTask>> GetPageAsync(
+            int pageIndex,
+            int pageSize,
+            string key,
+            string groupName,
+            string nodeName,
+            string appId);
 
         /// <summary>
         /// 查询列表
