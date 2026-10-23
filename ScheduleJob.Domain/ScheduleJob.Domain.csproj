@@ -12,6 +12,7 @@
     <PackageReference Include="OneForAll.EFCore" Version="2.1.1" />
     <PackageReference Include="OneForAll.File" Version="2.1.1" />
     <PackageReference Include="Quartz" Version="3.15.0" />
+    <PackageReference Include="TimeCrontab" Version="3.7.0" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 

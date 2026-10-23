@@ -82,15 +82,55 @@ namespace ScheduleJob.Repository
         }
 
         /// <summary>
-        /// 分批查询日志（用于批量删除）
+        /// 查询指定时间之前创建的日志（用于过期清理）
         /// </summary>
-        /// <param name="predicate">查询条件</param>
+        /// <param name="before">截止时间（UTC）</param>
+        /// <returns>列表</returns>
+        public async Task<IEnumerable<JobTaskLog>> GetListCreatedBeforeAsync(DateTime before)
+        {
+            return await DbSet.Where(w => w.CreateTime <= before).ToListAsync();
+        }
+
+        /// <summary>
+        /// 分批查询指定时间之前创建的非运行/非错误日志（心跳、注册、上线、下线）
+        /// </summary>
+        /// <param name="before">截止时间（UTC）</param>
         /// <param name="take">每次获取数量</param>
         /// <returns>列表</returns>
-        public async Task<IEnumerable<JobTaskLog>> GetListWithTakeAsync(System.Linq.Expressions.Expression<Func<JobTaskLog, bool>> predicate, int take)
+        public async Task<IEnumerable<JobTaskLog>> GetListNormalBeforeAsync(DateTime before, int take)
         {
             return await DbSet
-                .Where(predicate)
+                .Where(w => w.Type != JobTaskLogTypeEnum.Running && w.Type != JobTaskLogTypeEnum.Error && w.CreateTime < before)
+                .OrderBy(o => o.CreateTime)
+                .Take(take)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// 分批查询指定时间之前创建的运行日志
+        /// </summary>
+        /// <param name="before">截止时间（UTC）</param>
+        /// <param name="take">每次获取数量</param>
+        /// <returns>列表</returns>
+        public async Task<IEnumerable<JobTaskLog>> GetListRunningBeforeAsync(DateTime before, int take)
+        {
+            return await DbSet
+                .Where(w => w.Type == JobTaskLogTypeEnum.Running && w.CreateTime < before)
+                .OrderBy(o => o.CreateTime)
+                .Take(take)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// 分批查询指定时间之前创建的错误日志
+        /// </summary>
+        /// <param name="before">截止时间（UTC）</param>
+        /// <param name="take">每次获取数量</param>
+        /// <returns>列表</returns>
+        public async Task<IEnumerable<JobTaskLog>> GetListErrorBeforeAsync(DateTime before, int take)
+        {
+            return await DbSet
+                .Where(w => w.Type == JobTaskLogTypeEnum.Error && w.CreateTime < before)
                 .OrderBy(o => o.CreateTime)
                 .Take(take)
                 .ToListAsync();

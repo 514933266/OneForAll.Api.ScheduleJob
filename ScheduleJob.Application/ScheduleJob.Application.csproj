@@ -15,7 +15,6 @@
     <ProjectReference Include="..\ScheduleJob.Domain\ScheduleJob.Domain.csproj" />
     <ProjectReference Include="..\ScheduleJob.HttpSevice\ScheduleJob.HttpService.csproj" />
     <ProjectReference Include="..\ScheduleJob.Public\ScheduleJob.Public.csproj" />
-    <ProjectReference Include="..\ScheduleJob.Repository\ScheduleJob.Repository.csproj" />
   </ItemGroup>
 
 </Project>

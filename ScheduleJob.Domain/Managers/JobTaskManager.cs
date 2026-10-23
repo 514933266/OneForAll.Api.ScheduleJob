@@ -1,5 +1,4 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Http;
+using AutoMapper;
 using OneForAll.Core;
 using OneForAll.Core.Extension;
 using OneForAll.Core.ORM;
@@ -13,13 +12,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
+using TimeCrontab;
 
-namespace ScheduleJob.Domain
+namespace ScheduleJob.Domain.Managers
 {
     /// <summary>
     /// 定时任务
     /// </summary>
-    public class JobTaskManager : BaseManager, IJobTaskManager
+    public class JobTaskManager : ScheduleJobDomainManager, IJobTaskManager 
     {
         private readonly IMapper _mapper;
         private readonly IJobTaskRepository _repository;
@@ -28,40 +28,16 @@ namespace ScheduleJob.Domain
         private readonly IHttpClientFactory _httpClientFactory;
         public JobTaskManager(
             IMapper mapper,
-            IHttpContextAccessor httpContextAccessor,
+            ICurrentUser currentUser,
             IJobTaskRepository repository,
             IJobMidTaskPersonRepository contactRepository,
-            IHttpClientFactory httpClientFactory) : base(httpContextAccessor)
+            IHttpClientFactory httpClientFactory) : base(currentUser)
         {
             _mapper = mapper;
             _repository = repository;
             _contactRepository = contactRepository;
 
             _httpClientFactory = httpClientFactory;
-        }
-
-        /// <summary>
-        /// 获取分页列表
-        /// </summary>
-        /// <param name="pageIndex">页码</param>
-        /// <param name="pageSize">页数</param>
-        /// <param name="key">关键字</param>
-        /// <param name="groupName">所属分组</param>
-        /// <param name="nodeName">所属节点</param>
-        /// <param name="appId">应用程序id</param>
-        /// <returns>分页列表</returns>
-        public async Task<PageList<JobTask>> GetPageAsync(
-            int pageIndex,
-            int pageSize,
-            string key,
-            string groupName,
-            string nodeName,
-            string appId)
-        {
-            if (pageIndex < 1) pageIndex = 1;
-            if (pageSize < 1) pageSize = 10;
-            if (pageSize > 100) pageSize = 100;
-            return await _repository.GetPageAsync(pageIndex, pageSize, key, groupName, nodeName, appId);
         }
 
         /// <summary>
@@ -72,7 +48,7 @@ namespace ScheduleJob.Domain
         public async Task<BaseErrType> RegisterAsync(JobTaskRegisterForm form)
         {
             var errType = BaseErrType.Fail;
-            var data = await _repository.GetAsync(w => w.AppId == form.AppId && w.Name == form.Name);
+            var data = await _repository.GetByAppAndNameAsync(form.AppId, form.Name);
             if (data != null)
             {
                 if (!data.IsEnabled)
@@ -85,9 +61,9 @@ namespace ScheduleJob.Domain
                 data.RunningTime = DateTime.UtcNow;
                 data.HeartbeatTime = DateTime.UtcNow;
                 data.Status = JobTaskStatusEnum.Running;
-                if (_httpContextAccessor.HttpContext != null)
+                if (!string.IsNullOrEmpty(IpAddress))
                 {
-                    data.IpAddress = _httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
+                    data.IpAddress = IpAddress;
                 }
                 errType = await ResultAsync(() => _repository.UpdateAsync(data));
             }
@@ -95,9 +71,9 @@ namespace ScheduleJob.Domain
             {
                 data = _mapper.Map<JobTaskRegisterForm, JobTask>(form);
                 data.Status = JobTaskStatusEnum.Running;
-                if (_httpContextAccessor.HttpContext != null)
+                if (!string.IsNullOrEmpty(IpAddress))
                 {
-                    data.IpAddress = _httpContextAccessor.HttpContext.Connection.RemoteIpAddress.ToString();
+                    data.IpAddress = IpAddress;
                 }
                 errType = await ResultAsync(() => _repository.AddAsync(data));
             }
@@ -112,11 +88,7 @@ namespace ScheduleJob.Domain
         /// <returns>结果</returns>
         public async Task<BaseErrType> HeartbeatAsync(string appId, string taskName)
         {
-            var predicate = PredicateBuilder.Create<JobTask>(w => w.AppId == appId && w.IsEnabled);
-            if (!taskName.IsNullOrEmpty())
-                predicate = predicate.And(w => w.Name == taskName);
-
-            var data = await _repository.GetListAsync(predicate);
+            var data = await _repository.GetListEnabledAsync(appId, taskName);
             if (!data.Any())
                 return BaseErrType.DataEmpty;
 
@@ -137,7 +109,7 @@ namespace ScheduleJob.Domain
         /// <returns>结果</returns>
         public async Task<BaseErrType> UpdateRunningTimeAsync(string appId, string taskName)
         {
-            var data = await _repository.GetAsync(w => w.AppId == appId && w.Name == taskName && w.IsEnabled);
+            var data = await _repository.GetEnabledByAppAndNameAsync(appId, taskName);
             if (data == null)
                 return BaseErrType.DataNotFound;
 
@@ -154,11 +126,43 @@ namespace ScheduleJob.Domain
         /// <returns>结果</returns>
         public async Task<BaseErrType> ChangeStatusAsync(string appId, string taskName, JobTaskStatusEnum status)
         {
-            var data = await _repository.GetAsync(w => w.AppId == appId && w.Name == taskName && w.IsEnabled);
+            var data = await _repository.GetEnabledByAppAndNameAsync(appId, taskName);
             if (data == null)
                 return BaseErrType.DataNotFound;
 
             data.Status = status;
+            data.UpdateTime = DateTime.UtcNow;
+            return await ResultAsync(() => _repository.SaveChangesAsync());
+        }
+
+        /// <summary>
+        /// 按id更改定时任务状态
+        /// </summary>
+        /// <param name="id">任务id</param>
+        /// <param name="status">任务状态</param>
+        /// <returns>结果</returns>
+        public async Task<BaseErrType> ChangeStatusByIdAsync(Guid id, JobTaskStatusEnum status)
+        {
+            var data = await _repository.FindAsync(id);
+            if (data == null)
+                return BaseErrType.DataNotFound;
+
+            data.Status = status;
+            data.UpdateTime = DateTime.UtcNow;
+            return await ResultAsync(() => _repository.SaveChangesAsync());
+        }
+
+        /// <summary>
+        /// 按id更新修改时间（主动执行一次任务后记录）
+        /// </summary>
+        /// <param name="id">任务id</param>
+        /// <returns>结果</returns>
+        public async Task<BaseErrType> UpdateUpdateTimeByIdAsync(Guid id)
+        {
+            var data = await _repository.FindAsync(id);
+            if (data == null)
+                return BaseErrType.DataNotFound;
+
             data.UpdateTime = DateTime.UtcNow;
             return await ResultAsync(() => _repository.SaveChangesAsync());
         }
@@ -218,7 +222,7 @@ namespace ScheduleJob.Domain
         /// <returns>结果</returns>
         public async Task<bool> CheckForSurvivalAsync(string appId, string taskName)
         {
-            var data = await _repository.GetAsync(w => w.AppId == appId && w.Name == taskName && w.IsEnabled);
+            var data = await _repository.GetEnabledByAppAndNameAsync(appId, taskName);
             if (data == null)
                 return false;
 
@@ -241,6 +245,37 @@ namespace ScheduleJob.Domain
 
             return false;
         }
+
+        /// <summary>
+        /// 巡检判定：根据 cron 推算最近一次预期执行时间，判断是否已过宽限期/错过执行
+        /// </summary>
+        /// <param name="job">任务</param>
+        /// <param name="utcNow">当前时间（UTC）</param>
+        /// <returns>判定结果</returns>
+        public JobTaskInspectResult Inspect(JobTask job, DateTime utcNow)
+        {
+            var result = new JobTaskInspectResult();
+            if (job == null || string.IsNullOrEmpty(job.Cron))
+                return result;
+
+            var beijingTimeZone = TimeZoneInfo.FindSystemTimeZoneById("China Standard Time");
+
+            // 将当前 UTC 时间转为北京时间，用于 Cron 计算
+            var nowBeijing = TimeZoneInfo.ConvertTimeFromUtc(utcNow, beijingTimeZone);
+            var crontab = Crontab.Parse(job.Cron, CronStringFormat.WithSeconds);
+
+            // 将"北京时间"转换为 UTC 时间（用于和日志时间比较）
+            var lastExpectedRunTime = TimeZoneInfo.ConvertTimeToUtc(crontab.GetPreviousOccurrence(nowBeijing), beijingTimeZone);
+
+            result.LastExpectedRunTime = lastExpectedRunTime;
+
+            // 宽限期 5 分钟：已过宽限期才需要探测/判定异常
+            result.IsPastGracePeriod = utcNow > lastExpectedRunTime.AddMinutes(5);
+
+            // 已过宽限期且最后运行时间早于预期执行时间，说明任务进程在但未按时执行
+            result.IsMissed = result.IsPastGracePeriod && job.RunningTime < lastExpectedRunTime;
+
+            return result;
+        }
     }
 }
-

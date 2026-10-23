@@ -7,13 +7,10 @@ using ScheduleJob.Domain.Entities;
 using ScheduleJob.Domain.Enums;
 using ScheduleJob.Domain.Interfaces;
 using ScheduleJob.Domain.Models;
-using ScheduleJob.Domain.Repositorys;
 using ScheduleJob.HttpService.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace ScheduleJob.Application
@@ -26,22 +23,19 @@ namespace ScheduleJob.Application
         private readonly IMapper _mapper;
         private readonly IJobTaskManager _manager;
         private readonly IJobTaskLogManager _logManager;
-        private readonly IJobTaskRepository _repository;
-        private readonly IJobMidTaskPersonRepository _contactRepository;
+        private readonly IJobTaskQueryService _queryService;
         private readonly IScheduleJobHttpService _jobHttpService;
         public JobTaskService(
             IMapper mapper,
             IJobTaskManager manager,
             IJobTaskLogManager logManager,
-            IJobTaskRepository repository,
-            IJobMidTaskPersonRepository contactRepository,
+            IJobTaskQueryService queryService,
             IScheduleJobHttpService jobHttpService)
         {
             _mapper = mapper;
             _manager = manager;
             _logManager = logManager;
-            _repository = repository;
-            _contactRepository = contactRepository;
+            _queryService = queryService;
             _jobHttpService = jobHttpService;
         }
 
@@ -63,9 +57,9 @@ namespace ScheduleJob.Application
             string nodeName,
             string appId)
         {
-            var data = await _manager.GetPageAsync(pageIndex, pageSize, key, groupName, nodeName, appId);
+            var data = await _queryService.GetPageAsync(pageIndex, pageSize, key, groupName, nodeName, appId);
             var items = _mapper.Map<IEnumerable<JobTask>, IEnumerable<JobTaskDto>>(data.Items);
-            var persons = await _contactRepository.GetListPersonAsync(items.Select(s => s.Id).ToList());
+            var persons = await _queryService.GetListPersonAsync(items.Select(s => s.Id).ToList());
             return new PageList<JobTaskDto>(data.Total, data.PageSize, data.PageIndex, items);
         }
 
@@ -98,7 +92,7 @@ namespace ScheduleJob.Application
         /// <returns></returns>
         public async Task<BaseErrType> ChangeStatusAsync(Guid id, JobTaskStatusEnum status, LoginUser loginUser)
         {
-            var data = await _repository.FindAsync(id);
+            var data = await _queryService.GetByIdAsync(id);
             if (data == null) return BaseErrType.DataNotFound;
             if (data.Status == status) return BaseErrType.Success;
             if (!data.IsEnabled) return BaseErrType.Overflow;
@@ -106,24 +100,22 @@ namespace ScheduleJob.Application
             if (status != JobTaskStatusEnum.Unstart && status != JobTaskStatusEnum.Running)
                 return BaseErrType.NotAllow;
 
-            var effected = 0;
+            var errType = BaseErrType.Fail;
             var content = "";
             var response = new BaseMessage();
             if (data.Status == JobTaskStatusEnum.Running && status == JobTaskStatusEnum.Unstart)
             {
                 response = await _jobHttpService.StopAsync(data.NodeName, data.Name);
                 content = $"{loginUser.UserName}主动暂停定时任务，结果：{response.Message}";
+                if (response.Status)
+                    errType = await _manager.ChangeStatusByIdAsync(id, status);
             }
             else if (data.Status == JobTaskStatusEnum.Unstart && status == JobTaskStatusEnum.Running)
             {
                 response = await _jobHttpService.ResumeAsync(data.NodeName, data.Name);
                 content = $"{loginUser.UserName}主动重启定时任务，结果：{response.Message}";
-            }
-            if (response.Status)
-            {
-                data.Status = status;
-                data.UpdateTime = DateTime.UtcNow;
-                effected = await _repository.SaveChangesAsync();
+                if (response.Status)
+                    errType = await _manager.ChangeStatusByIdAsync(id, status);
             }
 
             // 记录操作日志
@@ -134,7 +126,7 @@ namespace ScheduleJob.Application
                 Content = content,
                 Type = JobTaskLogTypeEnum.Running
             });
-            return effected > 0 ? BaseErrType.Success : BaseErrType.Fail;
+            return errType;
         }
 
         /// <summary>
@@ -145,17 +137,16 @@ namespace ScheduleJob.Application
         /// <returns></returns>
         public async Task<BaseErrType> ExcuteAsync(Guid id, LoginUser loginUser)
         {
-            var data = await _repository.FindAsync(id);
+            var data = await _queryService.GetByIdAsync(id);
             if (data == null) return BaseErrType.DataNotFound;
             if (!data.IsEnabled) return BaseErrType.Overflow;
             if (data.Status != JobTaskStatusEnum.Running) return BaseErrType.NotAllow;
 
             var response = await _jobHttpService.ExcuteAsync(data.NodeName, data.Name);
-            var effected = 0;
+            var errType = BaseErrType.Fail;
             if (response.Status)
             {
-                data.UpdateTime = DateTime.UtcNow;
-                effected = await _repository.SaveChangesAsync();
+                errType = await _manager.UpdateUpdateTimeByIdAsync(id);
             }
 
             // 记录操作日志
@@ -166,7 +157,7 @@ namespace ScheduleJob.Application
                 Content = $"{loginUser.UserName}主动运行一次任务，结果：{response.Message}",
                 Type = JobTaskLogTypeEnum.Running
             });
-            return effected > 0 ? BaseErrType.Success : BaseErrType.Fail;
+            return errType;
         }
 
         /// <summary>

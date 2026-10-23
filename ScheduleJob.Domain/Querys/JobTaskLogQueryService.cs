@@ -1,32 +1,22 @@
-﻿using AutoMapper;
-using Microsoft.AspNetCore.Http;
 using OneForAll.Core;
 using ScheduleJob.Domain.Entities;
 using ScheduleJob.Domain.Enums;
 using ScheduleJob.Domain.Interfaces;
-using ScheduleJob.Domain.Models;
 using ScheduleJob.Domain.Repositorys;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
-namespace ScheduleJob.Domain
+namespace ScheduleJob.Domain.Querys
 {
     /// <summary>
-    /// 定时任务
+    /// 定时任务日志查询服务（只读，返回实体，不含 DTO）
     /// </summary>
-    public class JobTaskLogManager : BaseManager, IJobTaskLogManager
+    public class JobTaskLogQueryService : IJobTaskLogQueryService
     {
-        private readonly IMapper _mapper;
         private readonly IJobTaskLogRepository _repository;
-        public JobTaskLogManager(
-            IMapper mapper,
-            IHttpContextAccessor httpContextAccessor,
-            IJobTaskLogRepository repository) : base(httpContextAccessor)
+
+        public JobTaskLogQueryService(IJobTaskLogRepository repository)
         {
-            _mapper = mapper;
             _repository = repository;
         }
 
@@ -57,31 +47,5 @@ namespace ScheduleJob.Domain
             if (pageSize > 100) pageSize = 100;
             return await _repository.GetPageAsync(pageIndex, pageSize, appId, taskName, type, key, beiginTime, endTime);
         }
-
-        /// <summary>
-        /// 添加
-        /// </summary>
-        /// <param name="form">表单</param>
-        /// <returns>结果</returns>
-        public async Task<BaseErrType> AddAsync(JobTaskLogForm form)
-        {
-            var data = _mapper.Map<JobTaskLogForm, JobTaskLog>(form);
-            return await ResultAsync(() => _repository.AddAsync(data));
-        }
-
-        /// <summary>
-        /// 删除7天前的日志
-        /// </summary>
-        /// <returns>结果</returns>
-        public async Task<BaseErrType> DeleteListSevenDayAsync()
-        {
-            var data = await _repository.GetListAsync(w => w.CreateTime <= DateTime.UtcNow.AddDays(-7));
-            if (data.Any())
-            {
-                return await ResultAsync(() => _repository.DeleteRangeAsync(data));
-            }
-            return BaseErrType.Success;
-        }
     }
 }
-

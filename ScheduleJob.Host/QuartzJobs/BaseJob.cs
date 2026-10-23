@@ -2,7 +2,6 @@ using Quartz;
 using ScheduleJob.Application.Interfaces;
 using ScheduleJob.Domain.Entities;
 using ScheduleJob.Domain.Enums;
-using ScheduleJob.Domain.Repositorys;
 using ScheduleJob.Public.Models;
 using System;
 using System.Threading.Tasks;
@@ -16,16 +15,16 @@ namespace ScheduleJob.Host.QuartzJobs
     {
         protected readonly AuthConfig _authConfig;
         private readonly IScheduleJobService _scheduleJobService;
-        private readonly IJobMonitorStateRepository _stateRepository;
+        private readonly IJobMonitorStateService _monitorStateService;
 
         protected BaseJob(
             AuthConfig authConfig,
             IScheduleJobService scheduleJobService,
-            IJobMonitorStateRepository stateRepository)
+            IJobMonitorStateService monitorStateService)
         {
             _authConfig = authConfig;
             _scheduleJobService = scheduleJobService;
-            _stateRepository = stateRepository;
+            _monitorStateService = monitorStateService;
         }
 
         /// <summary>
@@ -100,7 +99,7 @@ namespace ScheduleJob.Host.QuartzJobs
         {
             try
             {
-                return await _stateRepository.GetAsync(clientCode, taskName);
+                return await _monitorStateService.GetStateAsync(clientCode, taskName);
             }
             catch (Exception ex)
             {
@@ -128,44 +127,7 @@ namespace ScheduleJob.Host.QuartzJobs
         {
             try
             {
-                var now = DateTime.UtcNow;
-                var isAbnormal = status == JobMonitorStatusEnum.Abnormal;
-                var lastError = isAbnormal ? errorMessage : null;
-                var lastFailCount = isAbnormal ? failCount : 0;
-
-                if (state == null)
-                {
-                    var newState = new JobMonitorState
-                    {
-                        Id = Guid.NewGuid(),
-                        ClientCode = clientCode,
-                        TaskName = taskName,
-                        LastStatus = status,
-                        LastErrorMessage = lastError,
-                        FailCount = lastFailCount,
-                        LastFailTime = isAbnormal ? now : (DateTime?)null,
-                        CreateTime = now,
-                        UpdateTime = now
-                    };
-                    await _stateRepository.AddAsync(newState);
-                }
-                else
-                {
-                    var isRecovered = state.LastStatus == JobMonitorStatusEnum.Abnormal && !isAbnormal;
-                    state.LastStatus = status;
-                    state.LastErrorMessage = lastError;
-                    state.FailCount = lastFailCount;
-                    if (isAbnormal)
-                    {
-                        state.LastFailTime = now;
-                    }
-                    if (isRecovered)
-                    {
-                        state.LastRecoverTime = now;
-                    }
-                    state.UpdateTime = now;
-                    await _stateRepository.UpdateAsync(state);
-                }
+                await _monitorStateService.SaveStateAsync(state, clientCode, taskName, status, errorMessage, failCount);
             }
             catch (Exception ex)
             {

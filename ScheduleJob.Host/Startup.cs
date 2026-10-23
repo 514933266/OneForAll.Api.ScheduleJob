@@ -21,6 +21,7 @@ using Quartz.Spi;
 using ScheduleJob.Host.Filters;
 using ScheduleJob.Host.Models;
 using ScheduleJob.Host.Providers;
+using ScheduleJob.Domain.Interfaces;
 using ScheduleJob.HttpService.Models;
 using ScheduleJob.Public.Models;
 using System;
@@ -151,6 +152,7 @@ namespace ScheduleJob.Host
             services.AddScoped<IUploader, Uploader>();
             services.AddScoped<ITenantProvider, TenantProvider>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddScoped<ICurrentUser, CurrentUser>();
 
             #endregion
 
@@ -222,9 +224,14 @@ namespace ScheduleJob.Host
                 .Where(t => t.Name.EndsWith("Service"))
                 .AsImplementedInterfaces();
 
-            // 领域层
+            // 领域层（命令：Manager）
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_DOMAIN))
                 .Where(t => t.Name.EndsWith("Manager"))
+                .AsImplementedInterfaces();
+
+            // 领域层（查询：QueryService）
+            builder.RegisterAssemblyTypes(Assembly.Load(BASE_DOMAIN))
+                .Where(t => t.Name.EndsWith("QueryService"))
                 .AsImplementedInterfaces();
 
             // 仓储层

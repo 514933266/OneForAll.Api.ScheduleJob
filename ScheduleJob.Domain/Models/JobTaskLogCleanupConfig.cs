@@ -1,9 +1,9 @@
-namespace ScheduleJob.Host.Models
+namespace ScheduleJob.Domain.Models
 {
     /// <summary>
-    /// 日志清理配置
+    /// 任务日志清理配置（兼容任务参数中的 Data 字段命名）
     /// </summary>
-    public class DeleteTaskLogConfig
+    public class JobTaskLogCleanupConfig
     {
         /// <summary>
         /// 心跳/注册/上线/下线日志保留天数

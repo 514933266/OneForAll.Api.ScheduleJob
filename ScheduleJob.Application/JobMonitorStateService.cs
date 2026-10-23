@@ -1,0 +1,53 @@
+using ScheduleJob.Application.Interfaces;
+using ScheduleJob.Domain.Entities;
+using ScheduleJob.Domain.Enums;
+using ScheduleJob.Domain.Interfaces;
+using System.Threading.Tasks;
+
+namespace ScheduleJob.Application
+{
+    /// <summary>
+    /// 定时任务监控状态（供调度任务记录/读取上次巡检结果）
+    /// </summary>
+    public class JobMonitorStateService : IJobMonitorStateService
+    {
+        private readonly IJobMonitorStateManager _stateManager;
+
+        public JobMonitorStateService(IJobMonitorStateManager stateManager)
+        {
+            _stateManager = stateManager;
+        }
+
+        /// <summary>
+        /// 查询上次监控状态（失败返回空，不影响监控主流程）
+        /// </summary>
+        /// <param name="clientCode">客户端编号</param>
+        /// <param name="taskName">任务名称</param>
+        /// <returns>状态</returns>
+        public async Task<JobMonitorState> GetStateAsync(string clientCode, string taskName)
+        {
+            return await _stateManager.GetStateAsync(clientCode, taskName);
+        }
+
+        /// <summary>
+        /// 记录监控状态（无记录则新增，否则更新；上次异常、本次正常时自动记录恢复时间）
+        /// </summary>
+        /// <param name="state">上次监控状态（可空）</param>
+        /// <param name="clientCode">客户端编号</param>
+        /// <param name="taskName">任务名称</param>
+        /// <param name="status">本次监控状态</param>
+        /// <param name="errorMessage">异常消息（本次异常时传入）</param>
+        /// <param name="failCount">连续异常次数（本次异常时传入）</param>
+        /// <returns>是否成功</returns>
+        public async Task<bool> SaveStateAsync(
+            JobMonitorState state,
+            string clientCode,
+            string taskName,
+            JobMonitorStatusEnum status,
+            string errorMessage = null,
+            int failCount = 0)
+        {
+            return await _stateManager.SaveStateAsync(state, clientCode, taskName, status, errorMessage, failCount);
+        }
+    }
+}

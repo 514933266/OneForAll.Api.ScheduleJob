@@ -2,6 +2,7 @@
 using ScheduleJob.Application.Dtos;
 using ScheduleJob.Domain.Entities;
 using ScheduleJob.Domain.Enums;
+using ScheduleJob.Domain.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,5 +37,12 @@ namespace ScheduleJob.Application.Interfaces
             string key,
             DateTime? beiginTime,
             DateTime? endTime);
+
+        /// <summary>
+        /// 按配置分批清理过期日志（调度任务调用）
+        /// </summary>
+        /// <param name="config">清理配置</param>
+        /// <returns>清理结果（含执行日志）</returns>
+        Task<JobTaskLogCleanupDto> ClearExpiredAsync(JobTaskLogCleanupConfig config);
     }
 }

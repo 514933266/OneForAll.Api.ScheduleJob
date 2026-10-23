@@ -45,11 +45,34 @@ namespace ScheduleJob.Domain.Repositorys
         Task<JobTaskLog> GetTop1ByTaskAsync(string appId, string taskName);
 
         /// <summary>
-        /// 分批查询日志（用于批量删除）
+        /// 查询指定时间之前创建的日志（用于过期清理）
         /// </summary>
-        /// <param name="predicate">查询条件</param>
+        /// <param name="before">截止时间（UTC）</param>
+        /// <returns>列表</returns>
+        Task<IEnumerable<JobTaskLog>> GetListCreatedBeforeAsync(DateTime before);
+
+        /// <summary>
+        /// 分批查询指定时间之前创建的非运行/非错误日志（心跳、注册、上线、下线）
+        /// </summary>
+        /// <param name="before">截止时间（UTC）</param>
         /// <param name="take">每次获取数量</param>
         /// <returns>列表</returns>
-        Task<IEnumerable<JobTaskLog>> GetListWithTakeAsync(System.Linq.Expressions.Expression<Func<JobTaskLog, bool>> predicate, int take);
+        Task<IEnumerable<JobTaskLog>> GetListNormalBeforeAsync(DateTime before, int take);
+
+        /// <summary>
+        /// 分批查询指定时间之前创建的运行日志
+        /// </summary>
+        /// <param name="before">截止时间（UTC）</param>
+        /// <param name="take">每次获取数量</param>
+        /// <returns>列表</returns>
+        Task<IEnumerable<JobTaskLog>> GetListRunningBeforeAsync(DateTime before, int take);
+
+        /// <summary>
+        /// 分批查询指定时间之前创建的错误日志
+        /// </summary>
+        /// <param name="before">截止时间（UTC）</param>
+        /// <param name="take">每次获取数量</param>
+        /// <returns>列表</returns>
+        Task<IEnumerable<JobTaskLog>> GetListErrorBeforeAsync(DateTime before, int take);
     }
 }

@@ -16,24 +16,6 @@ namespace ScheduleJob.Domain.Interfaces
     public interface IJobTaskManager
     {
         /// <summary>
-        /// 获取分页列表
-        /// </summary>
-        /// <param name="pageIndex">页码</param>
-        /// <param name="pageSize">页数</param>
-        /// <param name="key">关键字</param>
-        /// <param name="groupName">所属分组</param>
-        /// <param name="nodeName">所属节点</param>
-        /// <param name="appId">应用程序id</param>
-        /// <returns>分页列表</returns>
-        Task<PageList<JobTask>> GetPageAsync(
-            int pageIndex,
-            int pageSize,
-            string key,
-            string groupName,
-            string nodeName,
-            string appId);
-
-        /// <summary>
         /// 注册
         /// </summary>
         /// <param name="form">表单</param>
@@ -66,6 +48,21 @@ namespace ScheduleJob.Domain.Interfaces
         Task<BaseErrType> ChangeStatusAsync(string appId, string taskName, JobTaskStatusEnum status);
 
         /// <summary>
+        /// 按id更改定时任务状态
+        /// </summary>
+        /// <param name="id">任务id</param>
+        /// <param name="status">任务状态</param>
+        /// <returns>结果</returns>
+        Task<BaseErrType> ChangeStatusByIdAsync(Guid id, JobTaskStatusEnum status);
+
+        /// <summary>
+        /// 按id更新修改时间
+        /// </summary>
+        /// <param name="id">任务id</param>
+        /// <returns>结果</returns>
+        Task<BaseErrType> UpdateUpdateTimeByIdAsync(Guid id);
+
+        /// <summary>
         /// 启用/禁用
         /// </summary>
         /// <param name="id">实体id</param>
@@ -94,5 +91,13 @@ namespace ScheduleJob.Domain.Interfaces
         /// <param name="taskName">定时任务名称</param>
         /// <returns>结果</returns>
         Task<bool> CheckForSurvivalAsync(string appId, string taskName);
+
+        /// <summary>
+        /// 巡检判定：根据 cron 推算最近一次预期执行时间，判断是否已过宽限期/错过执行
+        /// </summary>
+        /// <param name="job">任务</param>
+        /// <param name="utcNow">当前时间（UTC）</param>
+        /// <returns>判定结果</returns>
+        JobTaskInspectResult Inspect(JobTask job, DateTime utcNow);
     }
 }

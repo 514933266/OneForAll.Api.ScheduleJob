@@ -1,9 +1,9 @@
-namespace ScheduleJob.Host.Models
+namespace ScheduleJob.Domain.Models
 {
     /// <summary>
-    /// 锁状态检查配置
+    /// 锁状态检查配置（兼容任务参数中的 Data 字段命名）
     /// </summary>
-    public class CheckLockStatusConfig
+    public class JobLockCleanupConfig
     {
         /// <summary>
         /// 最低超时分钟数（默认30分钟）

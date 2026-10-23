@@ -74,6 +74,42 @@ namespace ScheduleJob.Repository
         }
 
         /// <summary>
+        /// 按应用程序id+任务名查询（不限启用状态，用于注册）
+        /// </summary>
+        /// <param name="appId">应用程序id</param>
+        /// <param name="name">任务名称</param>
+        /// <returns>实体</returns>
+        public async Task<JobTask> GetByAppAndNameAsync(string appId, string name)
+        {
+            return await DbSet.FirstOrDefaultAsync(w => w.AppId == appId && w.Name == name);
+        }
+
+        /// <summary>
+        /// 按应用程序id+任务名查询已启用任务
+        /// </summary>
+        /// <param name="appId">应用程序id</param>
+        /// <param name="name">任务名称</param>
+        /// <returns>实体</returns>
+        public async Task<JobTask> GetEnabledByAppAndNameAsync(string appId, string name)
+        {
+            return await DbSet.FirstOrDefaultAsync(w => w.AppId == appId && w.Name == name && w.IsEnabled);
+        }
+
+        /// <summary>
+        /// 查询已启用任务列表（心跳更新用，taskName 为空则不限定任务名）
+        /// </summary>
+        /// <param name="appId">应用程序id</param>
+        /// <param name="taskName">任务名称</param>
+        /// <returns>列表</returns>
+        public async Task<List<JobTask>> GetListEnabledAsync(string appId, string taskName)
+        {
+            var query = DbSet.Where(w => w.AppId == appId && w.IsEnabled);
+            if (!taskName.IsNullOrEmpty())
+                query = query.Where(w => w.Name == taskName);
+            return await query.ToListAsync();
+        }
+
+        /// <summary>
         /// 查询已启用列表
         /// </summary>
         /// <returns>列表</returns>

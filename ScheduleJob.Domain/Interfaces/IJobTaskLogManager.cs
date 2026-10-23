@@ -16,28 +16,6 @@ namespace ScheduleJob.Domain.Interfaces
     public interface IJobTaskLogManager
     {
         /// <summary>
-        /// 获取分页列表
-        /// </summary>
-        /// <param name="pageIndex">页码</param>
-        /// <param name="pageSize">页数</param>
-        /// <param name="appId">appid</param>
-        /// <param name="taskName">定时任务名称</param>
-        /// <param name="type">日志类型</param>
-        /// <param name="key">关键字</param>
-        /// <param name="beiginTime">开始时间</param>
-        /// <param name="endTime">结束时间</param>
-        /// <returns>分页列表</returns>
-        Task<PageList<JobTaskLog>> GetPageAsync(
-            int pageIndex,
-            int pageSize,
-            string appId,
-            string taskName,
-            JobTaskLogTypeEnum type,
-            string key,
-            DateTime? beiginTime,
-            DateTime? endTime);
-
-        /// <summary>
         /// 添加
         /// </summary>
         /// <param name="form">表单</param>
@@ -49,5 +27,14 @@ namespace ScheduleJob.Domain.Interfaces
         /// </summary>
         /// <returns>结果</returns>
         Task<BaseErrType> DeleteListSevenDayAsync();
+
+        /// <summary>
+        /// 按类型分批删除截止时间之前的日志
+        /// </summary>
+        /// <param name="type">日志清理类型</param>
+        /// <param name="cutoff">截止时间（UTC）</param>
+        /// <param name="batchSize">单批删除上限</param>
+        /// <returns>本批删除数量</returns>
+        Task<int> ClearBatchAsync(JobTaskLogClearTypeEnum type, DateTime cutoff, int batchSize);
     }
 }

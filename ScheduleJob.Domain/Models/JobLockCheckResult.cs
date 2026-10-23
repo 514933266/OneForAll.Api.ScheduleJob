@@ -19,5 +19,15 @@ namespace ScheduleJob.Domain.Models
         /// 当前锁版本号（释放时回传）
         /// </summary>
         public int Version { get; set; }
+
+        /// <summary>
+        /// 是否为锁基础设施异常（锁表未创建、连接失败、超时、死锁等）
+        /// </summary>
+        public bool IsInfrastructureError { get; set; }
+
+        /// <summary>
+        /// 锁基础设施异常消息
+        /// </summary>
+        public string ErrorMessage { get; set; }
     }
 }
